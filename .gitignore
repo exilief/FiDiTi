@@ -1,0 +1,7 @@
+*.o
+*.cpp.d
+bin/
+
+
+*.png
+*.jpg
