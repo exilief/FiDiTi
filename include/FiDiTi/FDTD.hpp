@@ -394,23 +394,10 @@ class FDTD
         if constexpr(D == 1)
         {
             update1D(Az, By, cAA, cAB, 1, true, +1);
-
-            /*for (int i = 1; i < N[0]; ++i)
-            {
-                Az[i] = Az[i] * cAA[i] + (By[i] - By[i-1]) * cAB[i];
-            }*/
         }
         else if constexpr(D == 2)
         {
             update2D(Az, Bx, By, cAA, cAB, {1, 0}, {0, 1}, true);
-
-            /*for (int j = 1; j < N[1]; ++j)
-                for (int i = 1; i < N[0]; ++i)
-                {
-                    int n = to_idx({i, j});
-                    int n_down = to_idx({i, j-1});
-                    Az[n] = Az[n] * cAA[n] + ((By[n] - By[n-1]) - (Bx[n] - Bx[n_down])) * cAB[n];
-                }*/
         }
         else if constexpr(D == 3)
         {
@@ -432,30 +419,11 @@ class FDTD
         if constexpr(D == 1)
         {
             update1D(By, Az, cBB, cBA, 1, false, +1);
-
-            /*for (int i = 0; i < N[0]-1; ++i)
-            {
-                By[i] = By[i] * cBB[i] + (Az[i+1] - Az[i]) * cBA[i];
-            }*/
         }
         else if constexpr(D == 2)
         {
             update1D(By, Az, cBB, cBA, {1, 0}, false, +1);
             update1D(Bx, Az, cBB, cBA, {0, 1}, false, -1);
-
-            /*for (int j = 0; j < N[1]-1; ++j)
-                for (int i = 1; i < N[0]; ++i)  // for (int i = 0; i < N[0]; ++i)
-                {
-                    int n = to_idx({i, j});
-                    int n_up = to_idx({i, j+1});
-                    Bx[n] = Bx[n] * cBB[n] - (Az[n_up] - Az[n]) * cBA[n];
-                }
-            for (int j = 1; j < N[1]; ++j)  // for (int j = 0; j < N; ++j)
-                for (int i = 0; i < N[0]-1; ++i)
-                {
-                    int n = to_idx({i, j});
-                    By[n] = By[n] * cBB[n] + (Az[n+1] - Az[n]) * cBA[n];
-                }*/
         }
         else if constexpr(D == 3)
         {
@@ -484,7 +452,6 @@ class FDTD
         auto start = n_shift + dir * int(shift);
 
         forEachCell(RectNi<D>{start, N - 1 + start}, [&](VecNi<D> pos)
-        //forEachCell(RectNi<D>{VecNi<D>(int(shift)), N - 1 + int(shift)}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int j1 = to_idx(pos - dir * int(shift)), j2 = to_idx(pos + dir * int(!shift));
@@ -595,7 +562,8 @@ class FDTD
             applyAbc(abc);
     }
 
-    //void applyTfsfSource(Scalar q)
+    //void applyTfsfSource(Scalar q);
+
 
     // Field components parallel to the boundary
     std::array<std::vector<Scalar>*, 2>
@@ -712,6 +680,16 @@ struct TFSF
     FDTD<1> sim1d;
 };
 
+
+/*template <int D>
+void FDTD<D>::applyTfsfSource(Scalar q)
+{
+    // SF Correction
+
+    // TF Update
+}*/
+
+
 } // namespace fdtd
 
 
@@ -758,7 +736,7 @@ using fdtd::FDTD;
  *
  * template <class Scalar>
  *
- * Problem: 3D plane wave (point sources at boundary) with ABC causes instability
+ * ABC: Exclude first (last) line on side parallel (orthogonal) to absorbed component (Corner in 2D)
  *
  *
  *
