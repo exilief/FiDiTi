@@ -52,6 +52,14 @@ namespace fn
         return std::exp(-a * a);
     }
 
+    // Ricker wavelet (2nd deriv of Gauss)
+    template <class Scalar>
+    Scalar ricker(Scalar t, Scalar d = 30., Scalar P = 10.)  // P: Peak frequency
+    {
+        Scalar X = constants::pi * P * (t - d);
+        return (1 - 2*X*X) * std::exp(-X*X);
+    }
+
     template <class Scalar>
     auto makePulse(Scalar delay, Scalar width)
     {
@@ -284,7 +292,7 @@ class FDTD
         bool atEnd = int(b) % 2;
 
         abc.order = order;
-        abc.cells = boundaryCells(b, 1, 1);  // Exclude first corner
+        abc.cells = boundaryCells(b, 1);  // TODO: Exclude unneeded corner/edge
         abc.oldValues.resize(abc.cells.size() * (order == 2 ? 6 : 1));
 
         abc.direction = basisVec<D>(I, atEnd ? -1 : 1);
