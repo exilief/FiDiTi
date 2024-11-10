@@ -24,8 +24,8 @@ EXE := FiDiTi
 
 SRC_DIRS := ./src ./include
 BUILD_DIR := .
-BIN_DIR := $(BUILD_DIR)/bin/$(TARGET)
-OBJ_DIR := $(BUILD_DIR)/.obj/$(TARGET)
+BIN_DIR := $(BUILD_DIR)/bin
+OBJ_DIR := $(BUILD_DIR)/.obj
 
 
 

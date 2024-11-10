@@ -1,6 +1,7 @@
+bin/
+out/
 *.o
 *.cpp.d
-bin/
 
 
 *.png

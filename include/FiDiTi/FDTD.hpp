@@ -175,16 +175,16 @@ class FDTD
         S_c(stabilityConstant),
         dt(S_c * dx / constants::c)
     {
-        if(S_c > 1 / std::sqrt(D))
+        if (S_c > 1 / std::sqrt(D))
             std::cout << "Warning: unstable Courant number" << std::endl;
 
         int numCells = RectNi<D>{{}, gridSize}.volume();
         matIds.resize(numCells);
         Az.resize(numCells);
         By.resize(numCells);
-        if(D > 1)
+        if (D > 1)
             Bx.resize(numCells);
-        if(D > 2)
+        if (D > 2)
         {
             Ax.resize(numCells);
             Ay.resize(numCells);
@@ -228,7 +228,7 @@ class FDTD
     // (only needed if reading the field values at time = 0)
     void ensureInitialState()
     {
-        if(timeStep == -1)
+        if (timeStep == -1)
         {
             applySourcesA(0);
             timeStep = 0;
@@ -292,7 +292,7 @@ class FDTD
         for (auto* p : boundaryFields(b))
         {
             abc.field = p;
-            if(atEnd)
+            if (atEnd)
                 abcsB.push_back(abc);
             else
                 abcsA.push_back(abc);
@@ -608,7 +608,7 @@ class FDTD
         std::vector<std::vector<Scalar>*> x;
 
         for (auto* p : boundaryFields3D(b))
-            if(!p->empty())
+            if (!p->empty())
                 x.push_back(p);
         return x;
 
@@ -646,7 +646,7 @@ class FDTD
 
         if (timeStep % frameInterval) return;
 
-        std::filesystem::create_directories("bin/out/plot");
+        std::filesystem::create_directories("out/plot/2d");
 
         if constexpr(D == 1)
             print1D(RectNi<D>{{}, N}, Az);
@@ -661,7 +661,7 @@ class FDTD
     // Assumes Rect is a 1D-slice (width 1) for D > 1
     void print1D(const RectNi<D>& rect, const std::vector<Scalar>& A)
     {
-        std::ofstream out("bin/out/fdtd1d." + std::to_string(frame++) + ".txt");
+        std::ofstream out("out/fdtd1d." + std::to_string(frame++) + ".txt");
 
         forEachIndex(rect, [&](int i){ out << A[i] << "\n"; });
     }
@@ -669,7 +669,7 @@ class FDTD
     // Assumes Rect is a 2D-slice (thickness 1) for D = 3
     void print2D(const RectNi<D>& rect, const std::vector<Scalar>& A)
     {
-        std::ofstream out("bin/out/fdtd2d." + std::to_string(frame++) + ".txt");
+        std::ofstream out("out/fdtd2d." + std::to_string(frame++) + ".txt");
 
         // Assume slice is in xy-plane
         Vec first = rect.min, last = rect.max - 1;

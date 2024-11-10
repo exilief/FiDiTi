@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plot
 
-outdir = "bin/out"
+outdir = "out"
 
 def plot_frame1D(i):
     file = outdir + "/fdtd1d." + str(i) + ".txt"
