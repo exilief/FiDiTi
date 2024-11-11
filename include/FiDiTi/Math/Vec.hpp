@@ -1,7 +1,8 @@
 #ifndef FIDITI_MATH_VEC_HPP
 #define FIDITI_MATH_VEC_HPP
 
-#include <cstddef>
+#include "../config.hpp"
+
 #include <cassert>
 #include <utility>
 
@@ -9,7 +10,7 @@
 namespace fidi
 {
 
-template <std::size_t N, class T>
+template <size_t N, class T>
 struct Vec
 {
     T v[N] = {};
@@ -24,31 +25,31 @@ struct Vec
     template <class U>
     constexpr explicit Vec(const Vec<N,U>& vec);
 
-    constexpr T& operator[](std::size_t i) { return v[i]; }
+    constexpr T& operator[](size_t i) { return v[i]; }
 
-    constexpr const T& operator[](std::size_t i) const { return v[i]; }
+    constexpr const T& operator[](size_t i) const { return v[i]; }
 
     //static Vec filled(T x) { return Vec(x); }
-    //static Vec basis(std::size_t i, T x=1, T fill={}) { Vec v = filled(fill);  v[i] = x;  return v; }
+    //static Vec basis(size_t i, T x=1, T fill={}) { Vec v = filled(fill);  v[i] = x;  return v; }
 };
 
-template <std::size_t N, class T>
-Vec<N, T> basisVec(std::size_t i, T x = 1, T fill = {});
+template <size_t N, class T>
+Vec<N, T> basisVec(size_t i, T x = 1, T fill = {});
 
-template <std::size_t N, std::size_t N0, class T>
+template <size_t N, size_t N0, class T>
 Vec<N, T> resize(const Vec<N0, T>& v);
 
 
 // -1, +1 (includes 0)
-template <std::size_t D, class T>
+template <size_t D, class T>
 Vec<D, int> sign(const Vec<D, T>& v);
 
 // -1, 0, +1
-template <std::size_t D, class T>
+template <size_t D, class T>
 Vec<D, int> signum(const Vec<D, T>& v);
 
 
-template <std::size_t D, class T>
+template <size_t D, class T>
 T dot(const Vec<D, T>&, const Vec<D, T>&);
 
 
@@ -81,10 +82,10 @@ Vec<N,T> operator +(T left, Vec<N,T> right);
 
 **/
 
-template <std::size_t N, class T>
+template <size_t N, class T>
 constexpr bool operator ==(const Vec<N,T>& left, const Vec<N,T>& right);
 
-template <std::size_t N, class T>
+template <size_t N, class T>
 constexpr bool operator !=(const Vec<N,T>& left, const Vec<N,T>& right);
 
 #include "Vec.inl"
@@ -107,13 +108,13 @@ struct Vec<1, T>
     template <class U>
     constexpr explicit Vec(const Vec<1,U>& vec) : x(T(vec.x)) { }
 
-    constexpr const T& operator[](std::size_t i) const
+    constexpr const T& operator[](size_t i) const
     {
         assert(i == 0);
         return x;
     }
 
-    constexpr T& operator[](std::size_t i)
+    constexpr T& operator[](size_t i)
     {
         assert(i == 0);
         return x;
@@ -136,7 +137,7 @@ struct Vec<2, T>
     template <class U>
     constexpr explicit Vec(const Vec<2,U>& vec) : x(T(vec.x)), y(T(vec.y)) { }
 
-    constexpr const T& operator[](std::size_t i) const
+    constexpr const T& operator[](size_t i) const
     {
         assert(i < 2);
 
@@ -147,7 +148,7 @@ struct Vec<2, T>
         }
     }
 
-    constexpr T& operator[](std::size_t i)
+    constexpr T& operator[](size_t i)
     {
         return const_cast<T&>(std::as_const(*this)[i]);
     }
@@ -169,7 +170,7 @@ struct Vec<3, T>
     template <class U>
     constexpr explicit Vec(const Vec<3,U>& vec) : x(T(vec.x)), y(T(vec.y)), z(T(vec.z)) { }
 
-    constexpr const T& operator[](std::size_t i) const
+    constexpr const T& operator[](size_t i) const
     {
         assert(i < 3);
 
@@ -181,7 +182,7 @@ struct Vec<3, T>
         }
     }
 
-    constexpr T& operator[](std::size_t i)
+    constexpr T& operator[](size_t i)
     {
         return const_cast<T&>(std::as_const(*this)[i]);
     }
@@ -201,10 +202,10 @@ using Vec3u = Vec3<unsigned>;
 using Vec3f = Vec3<float>;
 using Vec3d = Vec3<double>;
 
-template <std::size_t N> using VecNi = Vec<N, int>;
-template <std::size_t N> using VecNu = Vec<N, unsigned>;
-template <std::size_t N> using VecNf = Vec<N, float>;
-template <std::size_t N> using VecNd = Vec<N, double>;
+template <size_t N> using VecNi = Vec<N, int>;
+template <size_t N> using VecNu = Vec<N, unsigned>;
+template <size_t N> using VecNf = Vec<N, float>;
+template <size_t N> using VecNd = Vec<N, double>;
 
 } // namespace fidi
 

@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <functional>
-#include <utility>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -16,8 +15,6 @@
 
 namespace fidi
 {
-
-using Scalar = double;
 
 namespace constants
 {
@@ -167,6 +164,7 @@ class FDTD
     std::vector<Source> hardSrcsA, hardSrcsB;
     std::vector<Source> additiveSrcsA, additiveSrcsB;
     std::vector<ABC<D>> abcsA, abcsB;
+    std::vector<TFSF<D>> tfsfSrcs;
 
     int timeStep = -1;  // First step at 0; -1 means initial sources not applied yet
 
@@ -212,8 +210,6 @@ class FDTD
 
         updateFieldB();
         applySourcesB(timeStep + 0.5);
-
-        //applyTfsfSource(timeStep + 0.5);
 
         updateFieldA();
         applySourcesA(timeStep + 1);
@@ -498,6 +494,10 @@ class FDTD
         applyAbcs(abcsB);
         applyAdditiveSources(additiveSrcsB, By, q);
         applyHardSources(hardSrcsB, By, q);
+
+        // Combined source for A and B
+        for (auto& src : tfsfSrcs)
+            applyTfsfSource(src, q);
     }
 
     void applyHardSources(std::vector<Source>& srcs, std::vector<Scalar>& F, Scalar q)
@@ -562,7 +562,7 @@ class FDTD
             applyAbc(abc);
     }
 
-    //void applyTfsfSource(Scalar q);
+    void applyTfsfSource(TFSF<D> src, Scalar q);
 
 
     // Field components parallel to the boundary
@@ -681,13 +681,13 @@ struct TFSF
 };
 
 
-/*template <int D>
-void FDTD<D>::applyTfsfSource(Scalar q)
+template <int D>
+void FDTD<D>::applyTfsfSource(TFSF<D> src, Scalar q)
 {
     // SF Correction
 
     // TF Update
-}*/
+}
 
 
 } // namespace fdtd
@@ -737,6 +737,8 @@ using fdtd::FDTD;
  * template <class Scalar>
  *
  * ABC: Exclude first (last) line on side parallel (orthogonal) to absorbed component (Corner in 2D)
+ *
+ * TFSF: Apply in 2 separate steps (A/B) later?
  *
  *
  *
