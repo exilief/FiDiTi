@@ -51,16 +51,17 @@ namespace fn
 
     // Ricker wavelet (2nd deriv of Gauss)
     template <class Scalar>
-    Scalar ricker(Scalar t, Scalar d = 30., Scalar P = 10.)  // P: Peak frequency
+    Scalar ricker(Scalar t, Scalar d = 30., Scalar w = 10.)
     {
-        Scalar X = constants::pi * P * (t - d);
-        return (1 - 2*X*X) * std::exp(-X*X);
+        Scalar P = 1 / w;  // Peak frequency
+        Scalar a = constants::pi * P * (t - d);
+        return (1 - 2*a*a) * std::exp(-a*a);
     }
 
     template <class Scalar>
     auto makePulse(Scalar delay, Scalar width)
     {
-        return [delay, width](Scalar t) { return gauss(t, delay, width); };
+        return [delay, width](Scalar t) { return ricker(t, delay, width); };
     }
 }
 

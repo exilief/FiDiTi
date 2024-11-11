@@ -31,11 +31,12 @@ int main()
 
     VecNi<D> N = resize<D>(Vec3i(52, 34, 8));
     FDTD<D> sim(N);
-    sim.addHardSource(N/2);
-    //sim.addPlaneSource(fdtd::Boundary::XMin);
-    if(0)
-        setMaterials<D>(sim, N);
-    else
-        sim.addAbsorbingBoundary(2);
+
+    if(1) sim.addHardSource(N/2);  // Point source
+    else  sim.addPlaneSource(fdtd::Boundary::XMin);
+
+    if(0) setMaterials<D>(sim, N);  // Reflective boundary
+    else  sim.addAbsorbingBoundary(2);
+
     sim.run(152 + N[0]);
 }
