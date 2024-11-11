@@ -314,6 +314,11 @@ class FDTD
         forEachIndex(boundaryRect(b), [&](int index) { addHardSource(to_vec(index)); });
     }
 
+    void addTfsfSource()
+    {
+        tfsfSrcs.emplace_back(RectNi<D>{{5,5}, N-5}, S_c);
+    }
+
     std::vector<int> boundaryCells(Boundary b, int width = 1, int offsetMin = 0, int offsetMax = 0) const
     {
         auto rect = boundaryRect(b, width, offsetMin, offsetMax);
@@ -674,9 +679,13 @@ struct TFSF
         sim1d(tfRegion.size()[0] + 20, S_c)
     {
         sim1d.addHardSource(0);
+        sim1d.addAbsorbingBoundary(Boundary::XMax, 2);  // TODO: Use impedance-matched lossy region instead
+        sim1d.ensureInitialState();
     }
 
     RectNi<D> bounds;
+    VecNi<D> direction = basisVec<D>(0, 1);  // Plane wave travel direction
+    int component = 2;  // Assume field A is excited (z-component)
 
     FDTD<1> sim1d;
 };
@@ -685,9 +694,32 @@ struct TFSF
 template <int D>
 void FDTD<D>::applyTfsfSource(TFSF<D> src, Scalar q)
 {
+    /*std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
+    std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
+
     // SF Correction
+    for(int i = 0; i < D; ++i)
+    {
+        VecNi<D> n = basisVec<D>(1);
+
+        (*B[i])[?] -= src.sim1d.fieldA(?)[?] * cBA[?];
+    }
+
+    src.sim1d.step();
 
     // TF Update
+    for(int i = 0; i < D; ++i)
+    {
+        VecNi<D> n = basisVec<D>(1);
+
+        forEachCell(RectNi<D>{start, N - 1 + start}, [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos);
+            int i1 = to_idx(pos - dir * int(shift));
+
+            (*A[i])[?] -= src.sim1d.fieldB(?)[?] * cAB[?];
+        });
+    }*/
 }
 
 
@@ -737,7 +769,8 @@ using fdtd::FDTD;
  *
  * template <class Scalar>
  *
- * ABC: Exclude first (last) line on side parallel (orthogonal) to absorbed component (Corner in 2D)
+ * ABC: Exclude first/last line on side where absorbed component is part of another boundary (Corner in 2D)
+ * (Example: xy-plane at z=0, exclude Ax at y=0 and x=xmax, Ay at x=0 and y=ymax)
  *
  * TFSF: Apply in 2 separate steps (A/B) later?
  *

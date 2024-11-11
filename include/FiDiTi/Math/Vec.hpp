@@ -52,6 +52,10 @@ Vec<D, int> signum(const Vec<D, T>& v);
 template <size_t D, class T>
 T dot(const Vec<D, T>&, const Vec<D, T>&);
 
+// Project onto coordinate plane with axis i (set component i to zero)
+template <size_t D, class T>
+Vec<D, T> project(Vec<D, T> v, size_t i);
+
 
 /**
 // =========== //

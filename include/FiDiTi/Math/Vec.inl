@@ -66,6 +66,14 @@ T dot(const Vec<D, T>& v1, const Vec<D, T>& v2)
     return sum;
 }
 
+template <size_t D, class T>
+Vec<D, T> project(Vec<D, T> v, size_t i)
+{
+    assert(i < D);
+    v[i] = 0;
+    return v;
+}
+
 
 
 

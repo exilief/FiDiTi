@@ -4,7 +4,7 @@
 Header-only C++ library
 
 
-Build and run the test:
+Build and run the test (Linux):
 ```bash
 make
 bin/FiDiTi
