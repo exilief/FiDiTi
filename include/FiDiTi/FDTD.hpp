@@ -51,7 +51,7 @@ namespace fn
 
     // Ricker wavelet (2nd deriv of Gauss)
     template <class Scalar>
-    Scalar ricker(Scalar t, Scalar d = 30., Scalar w = 10.)
+    Scalar ricker(Scalar t, Scalar d = 30., Scalar w = 16.)
     {
         Scalar P = 1 / w;  // Peak frequency
         Scalar a = constants::pi * P * (t - d);
@@ -125,7 +125,7 @@ struct Source
     Scalar duration = 0;  // Replace source with a regular node after this time (0 = no expiry)
     // Field component ... (using Az for now)
 
-    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 10);
+    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 18);
 };
 
 // Material must not change in normal-direction at the boundary (order 1: 2 cells; order 2: 3 cells)
@@ -626,7 +626,7 @@ class FDTD
     {
         ensureInitialState();
 
-        if (timeStep % frameInterval) return;
+        if (!frameInterval || timeStep % frameInterval) return;
 
         std::filesystem::create_directories("out/plot/2d");
 
@@ -674,52 +674,103 @@ class FDTD
 template <int D>
 struct TFSF
 {
-    TFSF(RectNi<D> tfRegion, Scalar S_c)
+    TFSF(RectNi<D> tfRegion, Scalar S_c, int dir = 0)
       : bounds(tfRegion),
-        sim1d(tfRegion.size()[0] + 20, S_c)
+        direction(dir),
+        sim1d(tfRegion.size()[dir] + 20, S_c)
     {
         sim1d.addHardSource(0);
         sim1d.addAbsorbingBoundary(Boundary::XMax, 2);  // TODO: Use impedance-matched lossy region instead
         sim1d.ensureInitialState();
     }
 
-    RectNi<D> bounds;
-    VecNi<D> direction = basisVec<D>(0, 1);  // Plane wave travel direction
-    int component = 2;  // Assume field A is excited (z-component)
+    RectNi<D> bounds;  // Interface components: B outside, A inside (at boundary)
+    int direction = 0;  // Plane wave travel direction (coord axis)
+    int component = 2;  // Assume field A is excited (z-component), component != direction
 
-    FDTD<1> sim1d;
+    FDTD<1> sim1d;  // Assume point 2 is aligned with the interface corner, point 1 outside
 };
 
 
 template <int D>
 void FDTD<D>::applyTfsfSource(TFSF<D> src, Scalar q)
 {
-    /*std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
+    int d_src = 2;  // Distance between source (1D simulation) and TF/SF interface
+
+    std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
     std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
 
-    // SF Correction
-    for(int i = 0; i < D; ++i)
-    {
-        VecNi<D> n = basisVec<D>(1);
+    // Assume the 1D simulation has Az, By -> Rotate for Ax, Ay
 
-        (*B[i])[?] -= src.sim1d.fieldA(?)[?] * cBA[?];
+    // SF Correction
+    for(int I = 0; I < D; ++I)
+    {
+        int k = src.component, k2 = 3 - k - I;
+
+        if (I == k || B[k2]->empty()) continue;
+
+        VecNi<D> n = basisVec<D>(I, 1);
+        VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
+
+        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos - n);
+            int i_src = d_src + (pos - corner1)[src.direction];
+
+            int sign = -1 + 2*int((k2+1) % 3 != I);  // dB/dt = -C*rot(A)
+
+            (*B[k2])[i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+        });
+
+        corner1[I] += src.bounds.size()[I] - 1;
+        corner2[I] += src.bounds.size()[I] - 1;
+
+        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos);
+            int i_src = d_src + (pos - corner1)[src.direction];
+
+            int sign = -1 + 2*int((k2+1) % 3 != I);  // dB/dt = -C*rot(A)
+
+            (*B[k2])[i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+        });
     }
 
     src.sim1d.step();
 
     // TF Update
-    for(int i = 0; i < D; ++i)
+    for(int I = 0; I < D; ++I)
     {
-        VecNi<D> n = basisVec<D>(1);
+        int k = src.component; //, k2 = 3 - k - I;
 
-        forEachCell(RectNi<D>{start, N - 1 + start}, [&](VecNi<D> pos)
+        if (I == k || A[k]->empty()) continue;
+
+        VecNi<D> n = basisVec<D>(I, 1);
+        VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
+
+        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i1 = to_idx(pos - dir * int(shift));
+            int i_src = d_src + (pos - corner1)[src.direction] - 1;
 
-            (*A[i])[?] -= src.sim1d.fieldB(?)[?] * cAB[?];
+            int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
+
+            (*A[k])[i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign;
         });
-    }*/
+
+        corner1[I] += src.bounds.size()[I] - 1;
+        corner2[I] += src.bounds.size()[I] - 1;
+
+        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos);
+            int i_src = d_src + (pos - corner1)[src.direction];
+
+            int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
+
+            (*A[k])[i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign;
+        });
+    }
 }
 
 
@@ -773,6 +824,7 @@ using fdtd::FDTD;
  * (Example: xy-plane at z=0, exclude Ax at y=0 and x=xmax, Ay at x=0 and y=ymax)
  *
  * TFSF: Apply in 2 separate steps (A/B) later?
+ * TFSF: Reduce code duplication
  *
  *
  *
