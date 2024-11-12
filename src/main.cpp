@@ -46,13 +46,13 @@ int main()
 {
     constexpr int D = 2;
 
-    VecNi<D> N = resize<D>(Vec3i(52, 34, 8));
+    VecNi<D> N = resize<D>(Vec3i(62, 40, 10));
     FDTD<D> sim(N);
 
     std::vector<int> matIds(RectNi<D>{{}, N}.volume());
 
     // Set source type here:
-    int s = 0;
+    int s = 2;
     if(s==0) sim.addHardSource(N/2);                    // Point source
     if(s==1) sim.addPlaneSource(fdtd::Boundary::XMin);  // Array/plane of point sources
     if(s==2) sim.addTfsfSource();                       // TF/SF plane source
