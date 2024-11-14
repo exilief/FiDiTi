@@ -125,7 +125,7 @@ struct Source
     Scalar duration = 0;  // Replace source with a regular node after this time (0 = no expiry)
     // Field component ... (using Az for now)
 
-    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 18);
+    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 22);
 };
 
 // Material must not change in normal-direction at the boundary (order 1: 2 cells; order 2: 3 cells)
@@ -399,6 +399,7 @@ class FDTD
         }
         else if constexpr(D == 2)
         {
+            //if (Bz.empty()) ...
             update2D(Az, Bx, By, cAA, cAB, {1, 0}, {0, 1}, true);
         }
         else if constexpr(D == 3)
@@ -700,14 +701,17 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
     std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
     std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
 
+    int compA = src.component, compB = 3 - compA - src.direction;
+
     // Assume the 1D simulation has Az, By -> Rotate for Ax, Ay
+    int signB1 = ((src.component+1) % 3 == src.direction) ? 1 : -1;
 
     // SF Correction
     for (int I = 0; I < D; ++I)
     {
-        int k = src.component, k2 = 3 - k - I;
+        int k = 3 - compA - I;
 
-        if (I == k || B[k2]->empty()) continue;
+        if (I == compA || B[k]->empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
@@ -717,9 +721,9 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             int i = to_idx(pos - n);
             int i_src = d_src + (pos - corner1)[src.direction];
 
-            int sign = -1 + 2*int((k2+1) % 3 != I);  // dB/dt = -C*rot(A)
+            int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
-            (*B[k2])[i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+            (*B[k])[i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
 
         forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I],
@@ -728,9 +732,9 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             int i = to_idx(pos);
             int i_src = d_src + (pos - corner1)[src.direction];
 
-            int sign = -1 + 2*int((k2+1) % 3 != I);  // dB/dt = -C*rot(A)
+            int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
-            (*B[k2])[i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+            (*B[k])[i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
     }
 
@@ -739,9 +743,9 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
     // TF Update
     for (int I = 0; I < D; ++I)
     {
-        int k = src.component, k2 = 3 - k - I;
+        int k = 3 - compB - I;
 
-        if (I == k || k2 == src.direction || A[k]->empty()) continue;
+        if (I == compB || A[k]->empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
@@ -753,7 +757,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
 
             int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
 
-            (*A[k])[i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign;
+            (*A[k])[i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
 
         forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I],
@@ -764,7 +768,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
 
             int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
 
-            (*A[k])[i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign;
+            (*A[k])[i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
     }
 }

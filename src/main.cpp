@@ -46,7 +46,7 @@ int main()
 {
     constexpr int D = 2;
 
-    VecNi<D> N = resize<D>(Vec3i(62, 40, 10));
+    VecNi<D> N = resize<D>(Vec3i(62, 40, 40));
     FDTD<D> sim(N);
 
     std::vector<int> matIds(RectNi<D>{{}, N}.volume());
