@@ -726,8 +726,8 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             (*B[k])[i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
 
-        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I],
-                              corner2 + n * src.bounds.size()[I]}, [&](VecNi<D> pos)
+        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
+                              corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int i_src = d_src + (pos - corner1)[src.direction];
@@ -760,8 +760,8 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             (*A[k])[i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
 
-        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I],
-                              corner2 + n * src.bounds.size()[I]}, [&](VecNi<D> pos)
+        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
+                              corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int i_src = d_src + (pos - corner1)[src.direction];

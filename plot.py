@@ -46,3 +46,7 @@ def plot_frame2D_line(i):
 for i in range(51):
     plot_frame2D(i)
     plot.clf()
+
+
+# Using np.abs(data) makes the TF/SF wave look much cleaner (no low-amplitude noise)
+# (There are small oscillations around zero behind the wave -> Jumps between 2 colors)
