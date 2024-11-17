@@ -395,12 +395,12 @@ class FDTD
     {
         if constexpr(D == 1)
         {
+            //if (Bz.empty())
             update1D(Az, By, cAA, cAB, 1, true, +1);
         }
         else if constexpr(D == 2)
         {
-            //if (Bz.empty()) ...
-            update2D(Az, Bx, By, cAA, cAB, {1, 0}, {0, 1}, true);
+            update2D(Az, Bx, By, cAA, cAB, /*z*/ 2, true);
         }
         else if constexpr(D == 3)
         {
@@ -411,8 +411,7 @@ class FDTD
             {
                 int j = (i+1) % 3;
                 int k = (i+2) % 3;
-                update2D(*A[i], *B[j], *B[k], cAA, cAB,
-                         basisVec<3>(j, 1), basisVec<3>(k, 1), true);
+                update2D(*A[i], *B[j], *B[k], cAA, cAB, i, true);
             }
         }
     }
@@ -437,8 +436,7 @@ class FDTD
             {
                 int j = (i+1) % 3;
                 int k = (i+2) % 3;
-                update2D(*B[i], *A[j], *A[k], cBB, cBA,
-                         basisVec<3>(j, 1), basisVec<3>(k, 1), false);
+                update2D(*B[i], *A[j], *A[k], cBB, cBA, i, false);
             }
         }
     }
@@ -468,10 +466,10 @@ class FDTD
     // shift: Skip first row/col (A-field)
     void update2D(std::vector<Scalar>& A, std::vector<Scalar>& B1, std::vector<Scalar>& B2,
                   std::vector<Scalar>& c1, std::vector<Scalar>& c2,
-                  VecNi<D> dir1, VecNi<D> dir2, bool shift)
+                  int axis, bool shift)
     {
         int sign = 1 - 2*int(!shift);
-        // dir1 = basisVec<3, int>((axis+1)%3), dir2 = basisVec<3, int>((axis+2)%3)
+        VecNi<D> dir1 = basisVec<D, int>((axis+1) % 3), dir2 = basisVec<D, int>((axis+2) % 3);
 
         // 3D: Skip first plane (B-field)
         auto n_shift = (1 - dir1 - dir2) * int(!shift);
@@ -813,8 +811,8 @@ using fdtd::FDTD;
  * Move sign of update-equations into coefficient cBA? -> Must add sign in ABC (cAB*cBA) ...
  *
  * Automate update equations (dA/dt = rot(B)):
- * - update2D(A[3], B[3], axis, cAA, cAB) -> Automatically calculates direction
- * - update1D(A[3], B[3], axisA, axisB, cAA, cAB) ?
+ * - update2D(A[3], B[3], axis, cAA, cAB) -> Automatically selects field components, A[axis], B...
+ * - update1D(A[3], B[3], axis1, axis2, cAA, cAB) ?
  *
  * update1D -> update2D with zero placeholder for unused B-comp
  *

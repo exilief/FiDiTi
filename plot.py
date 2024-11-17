@@ -26,9 +26,9 @@ def plot_frame2D(i):
     plot.title('Ez (N/C)')
     #plot.contourf(data)  # norm: linear, symlog, log
     if True:  # Fixed color range
-        plot.contourf(data, 16, norm="symlog", vmin=-0.1, vmax=1) # (x, y, data, 16, norm="linear")
+        plot.contourf(np.round(data,8), 16, norm="symlog", vmin=-0.1, vmax=1) # (x, y, data, 16, norm="linear")
     else:
-        plot.contourf(data, 16, norm="symlog")
+        plot.contourf(np.round(data,8), 16, norm="symlog")
     plot.colorbar()
     plot.savefig(outdir + "/plot/2d/fdtd." + str(i) + ".png")
 
