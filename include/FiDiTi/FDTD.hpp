@@ -118,6 +118,54 @@ struct UpdateCoeffs  // Pre-compute at start of simulation, internal only
 };
 
 
+struct Field
+{
+    std::vector<Scalar> x, y, z;
+
+    Field() = default;
+
+    template <size_t D>
+    Field(VecNi<D> gridSize, bool transverse)  // transverse: {x,y} or z (1D/2D only)
+    {
+        int numCells = RectNi<D>{{}, gridSize}.volume();
+
+        if (transverse)
+        {
+            y.resize(numCells);
+            if (D > 1)
+                x.resize(numCells);
+            if (D > 2)
+                z.resize(numCells);
+        }
+        else
+        {
+            z.resize(numCells);
+            if (D > 2)
+            {
+                x.resize(numCells);
+                y.resize(numCells);
+            }
+        }
+    }
+
+    const std::vector<Scalar>& operator[](size_t i) const
+    {
+        assert(i < 3);
+        switch(i)
+        {
+          case 0:  return x;
+          case 1:  return y;
+          default: return z;
+        }
+    }
+
+    std::vector<Scalar>& operator[](size_t i)
+    {
+        return const_cast<std::vector<Scalar>&>(std::as_const(*this)[i]);
+    }
+};
+
+
 // Point source (Hard source, or additive/current source)
 struct Source
 {
@@ -151,7 +199,7 @@ class FDTD
 {
     VecNi<D> N;  // Grid: N.x * N.y * N.z cells
 
-    std::vector<Scalar> Ax, Ay, Az, Bx, By, Bz;
+    Field A, B;
     std::vector<Scalar> cAA, cAB, cBB, cBA;  // Interpolate: cAA[3], cAB[3], cBB[3], cBA[3]
 
     std::vector<int> matIds;
@@ -179,6 +227,7 @@ class FDTD
 
     FDTD(VecNi<D> gridSize, Scalar stabilityConstant)
       : N(gridSize),
+        A(gridSize, false), B(gridSize, true),
         S_c(stabilityConstant),
         dt(S_c * dx / constants::c)
     {
@@ -187,16 +236,6 @@ class FDTD
 
         int numCells = RectNi<D>{{}, gridSize}.volume();
         matIds.resize(numCells);
-        Az.resize(numCells);
-        By.resize(numCells);
-        if (D > 1)
-            Bx.resize(numCells);
-        if (D > 2)
-        {
-            Ax.resize(numCells);
-            Ay.resize(numCells);
-            Bz.resize(numCells);
-        }
         cAA.resize(numCells);
         cAB.resize(numCells);
         cBB.resize(numCells);
@@ -243,25 +282,13 @@ class FDTD
     // Call ensureInitialState() to get correct values at time = 0
     const std::vector<Scalar>& fieldA(unsigned i) const
     {
-        assert(i < 3);
-        switch(i)
-        {
-            case 0:  return Ax;
-            case 1:  return Ay;
-            default: return Az;
-        }
+        return A[i];
     }
 
     // Call ensureInitialState() to get correct values at time = 0
     const std::vector<Scalar>& fieldB(unsigned i) const
     {
-        assert(i < 3);
-        switch(i)
-        {
-            case 0:  return Bx;
-            case 1:  return By;
-            default: return Bz;
-        }
+        return B[i];
     }
 
     void setMaterials(MaterialMap materials)  // defineMaterials(), setMaterialParams()
@@ -309,7 +336,7 @@ class FDTD
         hardSrcsA.push_back(Source{to_idx(pos)});
     }
 
-    void addPlaneSource(Boundary b)
+    void addPlaneSource(Boundary b)  // TODO: LineSource
     {
         forEachIndex(boundaryRect(b), [&](int index) { addHardSource(to_vec(index)); });
     }
@@ -395,23 +422,20 @@ class FDTD
     {
         if constexpr(D == 1)
         {
-            //if (Bz.empty())
-            update1D(Az, By, cAA, cAB, 1, true, +1);
+            //if (B.z.empty())
+            update1D(A.z, B.y, cAA, cAB, 1, true, +1);
         }
         else if constexpr(D == 2)
         {
-            update2D(Az, Bx, By, cAA, cAB, /*z*/ 2, true);
+            update2D(A.z, B.x, B.y, cAA, cAB, /*z*/ 2, true);
         }
         else if constexpr(D == 3)
         {
-            std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
-            std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
-
             for (int i = 0; i < 3; ++i)
             {
                 int j = (i+1) % 3;
                 int k = (i+2) % 3;
-                update2D(*A[i], *B[j], *B[k], cAA, cAB, i, true);
+                update2D(A[i], B[j], B[k], cAA, cAB, i, true);
             }
         }
     }
@@ -420,23 +444,20 @@ class FDTD
     {
         if constexpr(D == 1)
         {
-            update1D(By, Az, cBB, cBA, 1, false, +1);
+            update1D(B.y, A.z, cBB, cBA, 1, false, +1);
         }
         else if constexpr(D == 2)
         {
-            update1D(By, Az, cBB, cBA, {1, 0}, false, +1);
-            update1D(Bx, Az, cBB, cBA, {0, 1}, false, -1);
+            update1D(B.y, A.z, cBB, cBA, {1, 0}, false, +1);
+            update1D(B.x, A.z, cBB, cBA, {0, 1}, false, -1);
         }
         else if constexpr(D == 3)
         {
-            std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
-            std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
-
             for (int i = 0; i < 3; ++i)
             {
                 int j = (i+1) % 3;
                 int k = (i+2) % 3;
-                update2D(*B[i], *A[j], *A[k], cBB, cBA, i, false);
+                update2D(B[i], A[j], A[k], cBB, cBA, i, false);
             }
         }
     }
@@ -489,16 +510,16 @@ class FDTD
     void applySourcesA(Scalar q)
     {
         applyAbcs(abcsA);
-        applyAdditiveSources(additiveSrcsA, Az, q);
-        applyHardSources(hardSrcsA, Az, q);
+        applyAdditiveSources(additiveSrcsA, A.z, q);
+        applyHardSources(hardSrcsA, A.z, q);
     }
 
     // Sources + BCs
     void applySourcesB(Scalar q)
     {
         applyAbcs(abcsB);
-        applyAdditiveSources(additiveSrcsB, By, q);
-        applyHardSources(hardSrcsB, By, q);
+        applyAdditiveSources(additiveSrcsB, B.y, q);
+        applyHardSources(hardSrcsB, B.y, q);
 
         // Combined source for A and B
         for (auto& src : tfsfSrcs)
@@ -574,11 +595,10 @@ class FDTD
     std::array<std::vector<Scalar>*, 2>
         boundaryFields3D(Boundary b)
     {
-        auto X = (int(b) % 2) ? std::array{&Bx, &By, &Bz}
-                              : std::array{&Ax, &Ay, &Az};
+        auto& X = (int(b) % 2) ? B : A;
         int t[2] = {(toAxis(b) + 1) % 3, (toAxis(b) + 2) % 3};
 
-        return {X[t[0]], X[t[1]]};
+        return {&X[t[0]], &X[t[1]]};
     }
 
     // Field components parallel to the boundary
@@ -630,13 +650,13 @@ class FDTD
         std::filesystem::create_directories("out/plot/2d");
 
         if constexpr(D == 1)
-            print1D(RectNi<D>{{}, N}, Az);
+            print1D(RectNi<D>{{}, N}, A.z);
         else if constexpr(D == 2)
-            print2D(RectNi<D>{{}, N}, Az);
-            //print1D(Rect2i{{0, N.y/2}, {N.x, N.y/2 + 1}}, Az);
+            print2D(RectNi<D>{{}, N}, A.z);
+            //print1D(Rect2i{{0, N.y/2}, {N.x, N.y/2 + 1}}, A.z);
         else
-            //print3D(RectNi<D>{{}, N}, Az);
-            print2D(Rect3i{{0, 0, N.z/2}, {N.x, N.y, N.z/2 + 1}}, Az);
+            //print3D(RectNi<D>{{}, N}, A.z);
+            print2D(Rect3i{{0, 0, N.z/2}, {N.x, N.y, N.z/2 + 1}}, A.z);
     }
 
     // Assumes Rect is a 1D-slice (width 1) for D > 1
@@ -688,17 +708,14 @@ struct TFSF
     int component = 2;  // Assume field A is excited (z-component), component != direction
 
     FDTD<1> sim1d;  // Assume point 1 is aligned with the interface corner, point 0 outside
+
+    int d_src = 1;  // Distance between source (1D simulation) and TF/SF interface
 };
 
 
 template <int D>
 void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
 {
-    int d_src = 1;  // Distance between source (1D simulation) and TF/SF interface
-
-    std::vector<Scalar>* A[3] = {&Ax, &Ay, &Az};
-    std::vector<Scalar>* B[3] = {&Bx, &By, &Bz};
-
     int compA = src.component, compB = 3 - compA - src.direction;
 
     // Assume the 1D simulation has Az, By -> Rotate for Ax, Ay
@@ -709,7 +726,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
     {
         int k = 3 - compA - I;
 
-        if (I == compA || B[k]->empty()) continue;
+        if (I == compA || B[k].empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
@@ -717,22 +734,22 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos - n);
-            int i_src = d_src + (pos - corner1)[src.direction];
+            int i_src = src.d_src + (pos - corner1)[src.direction];
 
             int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
-            (*B[k])[i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+            B[k][i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
 
         forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
                               corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = d_src + (pos - corner1)[src.direction];
+            int i_src = src.d_src + (pos - corner1)[src.direction];
 
             int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
-            (*B[k])[i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
+            B[k][i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
     }
 
@@ -743,7 +760,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
     {
         int k = 3 - compB - I;
 
-        if (I == compB || A[k]->empty()) continue;
+        if (I == compB || A[k].empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
@@ -751,22 +768,22 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = d_src + (pos - corner1)[src.direction] - 1;
+            int i_src = src.d_src + (pos - corner1)[src.direction] - 1;
 
             int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
 
-            (*A[k])[i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
+            A[k][i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
 
         forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
                               corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = d_src + (pos - corner1)[src.direction];
+            int i_src = src.d_src + (pos - corner1)[src.direction];
 
             int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
 
-            (*A[k])[i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
+            A[k][i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
     }
 }
@@ -812,7 +829,7 @@ using fdtd::FDTD;
  *
  * Automate update equations (dA/dt = rot(B)):
  * - update2D(A[3], B[3], axis, cAA, cAB) -> Automatically selects field components, A[axis], B...
- * - update1D(A[3], B[3], axis1, axis2, cAA, cAB) ?
+ * - update1D(A[3], B[3], axisA, axisB, cAA, cAB) ?
  *
  * update1D -> update2D with zero placeholder for unused B-comp
  *
@@ -821,7 +838,7 @@ using fdtd::FDTD;
  * ABC: Exclude first/last line on side where absorbed component is part of another boundary (Corner in 2D)
  * (Example: xy-plane at z=0, exclude Ax at y=0 and x=xmax, Ay at x=0 and y=ymax)
  *
- * TFSF: Apply in 2 separate steps (A/B) later?
+ * TFSF: Apply in 2 separate steps (A/B) ?
  * TFSF: Reduce code duplication
  *
  *
