@@ -5,6 +5,16 @@ using namespace fidi;
 
 namespace
 {
+    Scalar toRad(Scalar deg)
+    {
+        return deg / 180 * constants::pi;
+    }
+
+    /*Scalar toDeg(Scalar rad)
+    {
+        return rad / constants::pi * 180;
+    }*/
+
     template <int D>
     void setMaterials(FDTD<D>& sim)
     {
@@ -39,6 +49,56 @@ namespace
 
         setMaterials(sim);
     }
+
+    // 2 planes at an angle, parallel to z-axis -> Fill enclosed corners (at N.x) with material
+    template <int D>
+    void addOpening(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
+    {
+        Scalar alpha = toRad(75);  // Normal angle, from x-axis (+/- at top/bottom)
+        Scalar d = N.y * 0.46;     // Distance from corners
+
+        using VecT = Vec<D, Scalar>;
+        VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
+                     resize<D>(Vec2<Scalar>{std::cos(-alpha), std::sin(-alpha)})};
+        VecT c[2] = {VecT(N), VecT(project(N, 1))};
+        RectNi<D> bounds{N*0 + 8, N-8};  // Place only in inner TFSF region
+
+        forEachCell(RectNi<D>{{}, N}, [&](VecNi<D> pos)
+        {
+            VecT p{ pos };
+            for (size_t i = 0; i < 2; ++i)
+                if (dot(c[i] - p, n[i]) <= d  &&  contains(bounds, pos))
+                    matIds[sim.to_idx(pos)] = 1;
+        });
+        sim.setCellMaterials(matIds);
+
+        setMaterials(sim);
+        static_assert(D > 1);
+    }
+
+    // Triangular obstacle, pointing in direction -x
+    template <int D>
+    void addWedge(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
+    {
+        Scalar alpha = toRad(90+40);  // Normal angle of 2 faces (+/- at top/bottom)
+        Scalar l = N.x * 0.12;        // Length
+
+        using VecT = Vec<D, Scalar>;
+        VecT c = VecT(N) / Scalar(2);  // Tip of the wedge
+        VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
+                     resize<D>(Vec2<Scalar>{std::cos(-alpha), std::sin(-alpha)})};
+
+        forEachCell(RectNi<D>{{}, N}, [&](VecNi<D> pos)
+        {
+            VecT p{ pos };
+            if (dot(p - c, n[0]) <= 0  &&  dot(p - c, n[1]) <= 0  &&  p[0] <= c[0] + l)
+                matIds[sim.to_idx(pos)] = 1;
+        });
+        sim.setCellMaterials(matIds);
+
+        setMaterials(sim);
+        static_assert(D > 1);
+    }
 }
 
 
@@ -63,6 +123,11 @@ int main()
     if(b==1) sim.addAbsorbingBoundary(2);
 
     //addScatterer<D>(sim, N, matIds);
+    if constexpr(D > 1)
+    {
+        addOpening<D>(sim, N, matIds);
+        //addWedge<D>(sim, N, matIds);
+    }
 
     sim.run(152 + N[0]);
 }

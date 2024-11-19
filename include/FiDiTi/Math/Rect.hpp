@@ -74,6 +74,16 @@ Rect<D, T> clamp(const Rect<D, T>& r, const Rect<D, T>& bounds)
 }
 
 
+template <size_t D, class T>
+bool contains(const Rect<D, T>& r, const Vec<D, T>& v)
+{
+    for (size_t i = 0; i < D; ++i)
+        if (v[i] < r.min[i] || v[i] > r.max[i])
+            return false;
+    return true;
+}
+
+
 template <size_t D, class F>
 void forEachPoint(const Rect<D, int>& grid, F f)
 {

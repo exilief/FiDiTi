@@ -42,7 +42,7 @@ template <size_t D, class T>
 Vec<D, int> sign(const Vec<D, T>& v)
 {
     Vec<D, int> s;
-    for (int i = 0; i < D; ++i)
+    for (size_t i = 0; i < D; ++i)
         s[i] = v[i] < 0 ? -1 : 1;
     return s;
 }
@@ -51,7 +51,7 @@ template <size_t D, class T>
 Vec<D, int> signum(const Vec<D, T>& v)
 {
     Vec<D, int> s;
-    for (int i = 0; i < D; ++i)
+    for (size_t i = 0; i < D; ++i)
         s[i] = v[i] < 0 ? -1 : (v[i] > 0 ? 1 : 0);
     return s;
 }
@@ -61,7 +61,7 @@ template <size_t D, class T>
 T dot(const Vec<D, T>& v1, const Vec<D, T>& v2)
 {
     T sum = 0;
-    for (int i = 0; i < D; ++i)
+    for (size_t i = 0; i < D; ++i)
         sum += v1[i] * v2[i];
     return sum;
 }
