@@ -5,11 +5,11 @@ TARGETS := Debug Release
 
 CXX ?= g++
 
-CXXFLAGS_A := -std=c++17 -Wall
+CXXFLAGS_A := -std=c++17 -Wall -fopenmp
 CXXFLAGS_D := $(CXXFLAGS_A) -g #-Og
 CXXFLAGS_R := $(CXXFLAGS_A) -O3 -s -DNDEBUG
 CPPFLAGS :=  # Preprocessor
-LDFLAGS :=  # Linker
+LDFLAGS := -fopenmp  # Linker
 
 CXXFLAGS := $(CXXFLAGS_D)
 Debug:   CXXFLAGS := $(CXXFLAGS_D)

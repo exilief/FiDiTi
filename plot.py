@@ -43,7 +43,7 @@ def plot_frame2D_line(i):
     plot.plot(x, data[int(n/2)])
     plot.savefig(outdir + "/plot/2d/fdtd." + str(i) + ".png")
 
-for i in range(51):
+for i in range(57):
     plot_frame2D(i)
     plot.clf()
 

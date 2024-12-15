@@ -173,7 +173,7 @@ struct Source
     Scalar duration = 0;  // Replace source with a regular node after this time (0 = no expiry)
     // Field component ... (using Az for now)
 
-    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 22);
+    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(38, 26);
 };
 
 // Material must not change in normal-direction at the boundary (order 1: 2 cells; order 2: 3 cells)
@@ -218,7 +218,7 @@ class FDTD
     int timeStep = -1;  // First step at 0; -1 means initial sources not applied yet
 
     int frame = 0;          // Output frame counter
-    int frameInterval = 4;  // Output interval; 0 means no automatic printing
+    int frameInterval = 6;  // Output interval; 0 means no automatic printing
 
  public:
     FDTD(VecNi<D> gridSize)

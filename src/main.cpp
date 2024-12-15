@@ -55,7 +55,7 @@ namespace
     void addOpening(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
     {
         Scalar alpha = toRad(75);  // Normal angle, from x-axis (+/- at top/bottom)
-        Scalar d = N.y * 0.46;     // Distance from corners
+        Scalar d = N.y * 0.36;     // Distance from corners
 
         using VecT = Vec<D, Scalar>;
         VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
@@ -106,7 +106,7 @@ int main()
 {
     constexpr int D = 2;
 
-    VecNi<D> N = resize<D>(Vec3i(62, 40, 40));
+    VecNi<D> N = resize<D>(Vec3i(186, 120, 40));
     FDTD<D> sim(N);
 
     std::vector<int> matIds(RectNi<D>{{}, N}.volume());
