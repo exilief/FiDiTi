@@ -124,7 +124,7 @@ struct Field
 
     Field() = default;
 
-    template <size_t D>
+    template <int D>
     Field(VecNi<D> gridSize, bool transverse)  // transverse: {x,y} or z (1D/2D only)
     {
         int numCells = RectNi<D>{{}, gridSize}.volume();
@@ -148,7 +148,7 @@ struct Field
         }
     }
 
-    const std::vector<Scalar>& operator[](size_t i) const
+    const std::vector<Scalar>& operator[](int i) const
     {
         assert(i < 3);
         switch(i)
@@ -159,7 +159,7 @@ struct Field
         }
     }
 
-    std::vector<Scalar>& operator[](size_t i)
+    std::vector<Scalar>& operator[](int i)
     {
         return const_cast<std::vector<Scalar>&>(std::as_const(*this)[i]);
     }
@@ -280,13 +280,13 @@ class FDTD
     }
 
     // Call ensureInitialState() to get correct values at time = 0
-    const std::vector<Scalar>& fieldA(unsigned i) const
+    const std::vector<Scalar>& fieldA(int i) const
     {
         return A[i];
     }
 
     // Call ensureInitialState() to get correct values at time = 0
-    const std::vector<Scalar>& fieldB(unsigned i) const
+    const std::vector<Scalar>& fieldB(int i) const
     {
         return B[i];
     }
@@ -547,7 +547,7 @@ class FDTD
         std::vector<Scalar>& F = *abc.field;
 
         // TODO: Calculate coeffs once, use for all nodes (assume same material)
-        for (unsigned i = 0; i < abc.cells.size(); ++i)
+        for (size_t i = 0; i < abc.cells.size(); ++i)
         {
             int n0 = abc.cells[i];
             int n1 = to_idx(to_vec(n0) + abc.direction);

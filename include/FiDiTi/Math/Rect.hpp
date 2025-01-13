@@ -7,19 +7,19 @@
 namespace fidi
 {
 
-template <size_t D, class T>
+template <int D, class T>
 struct Rect
 {
     Vec<D, T> min, max;
 
     Vec<D, T> size() const { return max - min; }
 
-    Vec<D, T> corner(size_t i) const
+    Vec<D, T> corner(int i) const
     {
         assert(i < (1 << D));
         auto p = min, d = size();
 
-        for (size_t j = 0; j < D; ++j)
+        for (int j = 0; j < D; ++j)
         {
             // x: 01010101, y: 00110011, z: 00001111
             p[j] += d[j] * ((i / (1 << j)) % 2);
@@ -31,60 +31,60 @@ struct Rect
     T volume() const
     {
         T vol = 1;
-        for (size_t i = 0; i < D; ++i)
+        for (int i = 0; i < D; ++i)
             vol *= max[i] - min[i];
         return vol;
     }
 };
 
 
-template <size_t D, class T>
+template <int D, class T>
 Vec<D, T> clamp(Vec<D, T> v, const Rect<D, T>& rect)
 {
-    for (size_t i = 0; i < D; ++i)
+    for (int i = 0; i < D; ++i)
         v[i] = v[i] < rect.min[i] ? rect.min[i] :
                v[i] > rect.max[i] ? rect.max[i] : v[i];
     return v;
 }
 
 // Clamp low = clamp(v, Rect{vmin, +inf})
-template <size_t D, class T>
+template <int D, class T>
 Vec<D, T> clamp_l(Vec<D, T> v, const Vec<D, T>& vmin)
 {
-    for (size_t i = 0; i < D; ++i)
+    for (int i = 0; i < D; ++i)
         if (v[i] < vmin[i])
             v[i] = vmin[i];
     return v;
 }
 
 // Clamp high = clamp(v, Rect{-inf, vmax})
-template <size_t D, class T>
+template <int D, class T>
 Vec<D, T> clamp_h(Vec<D, T> v, const Vec<D, T>& vmax)
 {
-    for (size_t i = 0; i < D; ++i)
+    for (int i = 0; i < D; ++i)
         if (v[i] > vmax[i])
             v[i] = vmax[i];
     return v;
 }
 
-template <size_t D, class T>
+template <int D, class T>
 Rect<D, T> clamp(const Rect<D, T>& r, const Rect<D, T>& bounds)
 {
     return {clamp(r.min, bounds), clamp(r.max, bounds)};
 }
 
 
-template <size_t D, class T>
+template <int D, class T>
 bool contains(const Rect<D, T>& r, const Vec<D, T>& v)
 {
-    for (size_t i = 0; i < D; ++i)
+    for (int i = 0; i < D; ++i)
         if (v[i] < r.min[i] || v[i] > r.max[i])
             return false;
     return true;
 }
 
 
-template <size_t D, class F>
+template <int D, class F>
 void forEachPoint(const Rect<D, int>& grid, F f)
 {
     static_assert(D > 0);
@@ -125,7 +125,7 @@ void forEachPoint(const Rect<D, int>& grid, F f)
     }
 }
 
-template <size_t D, class F>
+template <int D, class F>
 void forEachCell(const Rect<D, int>& grid, F f)  // forEachSubRect
 {
     forEachPoint(Rect<D, int>{grid.min, grid.max - 1}, std::move(f));
@@ -145,10 +145,10 @@ using Rect3u = Rect3<unsigned>;
 using Rect3f = Rect3<float>;
 using Rect3d = Rect3<double>;
 
-template <size_t N> using RectNi = Rect<N, int>;
-template <size_t N> using RectNu = Rect<N, unsigned>;
-template <size_t N> using RectNf = Rect<N, float>;
-template <size_t N> using RectNd = Rect<N, double>;
+template <int N> using RectNi = Rect<N, int>;
+template <int N> using RectNu = Rect<N, unsigned>;
+template <int N> using RectNf = Rect<N, float>;
+template <int N> using RectNd = Rect<N, double>;
 
 } // namespace fidi
 

@@ -66,7 +66,7 @@ namespace
         forEachCell(RectNi<D>{{}, N}, [&](VecNi<D> pos)
         {
             VecT p{ pos };
-            for (size_t i = 0; i < 2; ++i)
+            for (int i = 0; i < 2; ++i)
                 if (dot(c[i] - p, n[i]) <= d  &&  contains(bounds, pos))
                     matIds[sim.to_idx(pos)] = 1;
         });
@@ -125,8 +125,8 @@ int main()
     //addScatterer<D>(sim, N, matIds);
     if constexpr(D > 1)
     {
-        addOpening<D>(sim, N, matIds);
-        //addWedge<D>(sim, N, matIds);
+        addOpening(sim, N, matIds);
+        //addWedge(sim, N, matIds);
     }
 
     sim.run(152 + N[0]);

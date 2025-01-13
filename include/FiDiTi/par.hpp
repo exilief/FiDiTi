@@ -48,7 +48,7 @@ void set_num_threads_max()
 }
 
 
-template <size_t D, class F>
+template <int D, class F>
 void forEachPoint(const Rect<D, int>& grid, F f)
 {
     static_assert(D > 0);
@@ -92,7 +92,7 @@ void forEachPoint(const Rect<D, int>& grid, F f)
     }
 }
 
-template <size_t D, class F>
+template <int D, class F>
 void forEachCell(const Rect<D, int>& grid, F f)
 {
     par::forEachPoint(Rect<D, int>{grid.min, grid.max - 1}, std::move(f));
