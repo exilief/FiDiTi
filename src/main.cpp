@@ -41,7 +41,7 @@ namespace
     template <int D>
     void addScatterer(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
     {
-        forEachCell(RectNi<D>{N/5, N/3}, [&](VecNi<D> pos)
+        forEachCell(Rect{N/5, N/3}, [&](VecNi<D> pos)
         {
             matIds[sim.to_idx(pos)] = 1;
         });
@@ -61,13 +61,13 @@ namespace
         VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
                      resize<D>(Vec2<Scalar>{std::cos(-alpha), std::sin(-alpha)})};
         VecT c[2] = {VecT(N), VecT(project(N, 1))};
-        RectNi<D> bounds{N*0 + 8, N-8};  // Place only in inner TFSF region
+        Rect bounds{N*0 + 8, N-8};  // Place only in inner TFSF region
 
-        forEachCell(RectNi<D>{{}, N}, [&](VecNi<D> pos)
+        forEachCell(Rect(N), [&](VecNi<D> pos)
         {
             VecT p{ pos };
             for (int i = 0; i < 2; ++i)
-                if (dot(c[i] - p, n[i]) <= d  &&  contains(bounds, pos))
+                if (dot(c[i] - p, n[i]) <= d  &&  bounds.contains(pos))
                     matIds[sim.to_idx(pos)] = 1;
         });
         sim.setCellMaterials(matIds);
@@ -88,7 +88,7 @@ namespace
         VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
                      resize<D>(Vec2<Scalar>{std::cos(-alpha), std::sin(-alpha)})};
 
-        forEachCell(RectNi<D>{{}, N}, [&](VecNi<D> pos)
+        forEachCell(Rect(N), [&](VecNi<D> pos)
         {
             VecT p{ pos };
             if (dot(p - c, n[0]) <= 0  &&  dot(p - c, n[1]) <= 0  &&  p[0] <= c[0] + l)
@@ -109,7 +109,7 @@ int main()
     VecNi<D> N = resize<D>(Vec3i(186, 120, 40));
     FDTD<D> sim(N);
 
-    std::vector<int> matIds(RectNi<D>{{}, N}.volume());
+    std::vector<int> matIds(Rect{N}.volume());
 
     // Set source type here:
     int s = 2;

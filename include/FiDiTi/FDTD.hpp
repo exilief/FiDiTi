@@ -66,6 +66,24 @@ namespace fn
 }
 
 
+// Make the field domain smaller or larger if newBounds exceeds Rect(fieldSize)
+template <int D, class T>
+std::vector<T> resizeField(const std::vector<T>& field, VecNi<D> fieldSize, RectNi<D> newBounds)
+{
+    std::vector<T> data(newBounds.volume());
+
+    Vec stride1 = indexStride(newBounds.size());
+    Vec stride2 = indexStride(fieldSize);
+
+    forEachCell(clamp(newBounds, Rect(fieldSize)), [&] (VecNi<D> p)
+    {
+        data[dot(p - newBounds.min, stride1)] = field[dot(p, stride2)];
+    });
+
+    return data;
+}
+
+
 namespace fdtd
 {
 
@@ -127,7 +145,7 @@ struct Field
     template <int D>
     Field(VecNi<D> gridSize, bool transverse)  // transverse: {x,y} or z (1D/2D only)
     {
-        int numCells = RectNi<D>{{}, gridSize}.volume();
+        int numCells = Rect(gridSize).volume();
 
         if (transverse)
         {
@@ -197,7 +215,8 @@ struct TFSF;  // Contains FDTD<1>, requires class definition -> See below
 template <int D>
 class FDTD
 {
-    VecNi<D> N;  // Grid: N.x * N.y * N.z cells
+    VecNi<D> N;         // Grid: N.x * N.y * N.z cells
+    VecNi<D> idxStride; // {1, N.x, N.x*N.y}
 
     Field A, B;
     std::vector<Scalar> cAA, cAB, cBB, cBA;  // Interpolate: cAA[3], cAB[3], cBB[3], cBA[3]
@@ -227,6 +246,7 @@ class FDTD
 
     FDTD(VecNi<D> gridSize, Scalar stabilityConstant)
       : N(gridSize),
+        idxStride(indexStride(N)),
         A(gridSize, false), B(gridSize, true),
         S_c(stabilityConstant),
         dt(S_c * dx / constants::c)
@@ -234,7 +254,7 @@ class FDTD
         if (S_c > 1 / std::sqrt(D))
             std::cout << "Warning: unstable Courant number" << std::endl;
 
-        int numCells = RectNi<D>{{}, gridSize}.volume();
+        int numCells = Rect(gridSize).volume();
         matIds.resize(numCells);
         cAA.resize(numCells);
         cAB.resize(numCells);
@@ -343,7 +363,7 @@ class FDTD
 
     void addTfsfSource()
     {
-        tfsfSrcs.emplace_back(RectNi<D>{VecNi<D>(5), N-5}, S_c);
+        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c);
     }
 
     std::vector<int> boundaryCells(Boundary b, int width = 1, int offsetMin = 0, int offsetMax = 0) const
@@ -364,7 +384,7 @@ class FDTD
         if(atMax) corner1 += n * (N[d] - width);
         else      corner2 -= n * (N[d] - width);
 
-        return clamp(RectNi<D>{corner1, corner2}, RectNi<D>{{}, N});
+        return clamp(Rect{corner1, corner2}, Rect(N));
     }
 
     std::vector<int> subgridCells(const RectNi<D>& bounds) const
@@ -390,29 +410,23 @@ class FDTD
         forEachCell(bounds, [&](VecNi<D> p) { f(to_idx(p)); });
     }
 
+    VecNi<D> gridSize() const
+    {
+        return N;
+    }
+
     // Grid position to cell index
     int to_idx(VecNi<D> v) const
     {
-        // inner_product(v, Vec{1, N.x, N.x*N.y})
-        int idx = 0, product = 1;
-        for (int i = 0; i < D; ++i)
-        {
-            idx += v[i] * product;
-            product *= N[i];
-        }
-        return idx;
+        return dot(v, idxStride);
     }
 
     // Cell index to grid position
     VecNi<D> to_vec(int c) const  // to_pos
     {
         VecNi<D> v;
-        int product = 1;
         for (int i = 0; i < D; ++i)
-        {
-            v[i] = c % (product * N[i]) / product;
-            product *= N[i];
-        }
+            v[i] = c % (idxStride[i] * N[i]) / idxStride[i];
         return v;
     }
 
@@ -473,7 +487,7 @@ class FDTD
         auto n_shift = (1 - dir) * int(!shift);
         auto start = n_shift + dir * int(shift);
 
-        forEachCell(RectNi<D>{start, N - 1 + start}, [&](VecNi<D> pos)
+        forEachCell(Rect{start, N - 1 + start}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int j1 = to_idx(pos - dir * int(shift)), j2 = to_idx(pos + dir * int(!shift));
@@ -496,7 +510,7 @@ class FDTD
         auto n_shift = (1 - dir1 - dir2) * int(!shift);
         auto start = n_shift + (dir1 + dir2) * int(shift);
 
-        forEachCell(RectNi<D>{start, N - 1 + start}, [&](VecNi<D> pos)
+        forEachCell(Rect{start, N - 1 + start}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int j1 = to_idx(pos - dir1 * int(shift)), j2 = to_idx(pos + dir1 * int(!shift));
@@ -630,7 +644,7 @@ class FDTD
 
     void applyMaterials()
     {
-        for (int i = 0; i < RectNi<D>{{}, N}.volume(); ++i)
+        for (int i = 0; i < Rect(N).volume(); ++i)
         {
             // TODO: Interpolate materials
             UpdateCoeffs uc(mats[matIds[i]], refMat, dx, dt);
@@ -650,12 +664,12 @@ class FDTD
         std::filesystem::create_directories("out/plot/2d");
 
         if constexpr(D == 1)
-            print1D(RectNi<D>{{}, N}, A.z);
+            print1D(Rect(N), A.z);
         else if constexpr(D == 2)
-            print2D(RectNi<D>{{}, N}, A.z);
+            print2D(Rect(N), A.z);
             //print1D(Rect2i{{0, N.y/2}, {N.x, N.y/2 + 1}}, A.z);
         else
-            //print3D(RectNi<D>{{}, N}, A.z);
+            //print3D(Rect(N), A.z);
             print2D(Rect3i{{0, 0, N.z/2}, {N.x, N.y, N.z/2 + 1}}, A.z);
     }
 
@@ -731,7 +745,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
 
-        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
+        forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos - n);
             int i_src = src.d_src + (pos - corner1)[src.direction];
@@ -741,8 +755,8 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             B[k][i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
 
-        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
-                              corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
+        forEachCell(Rect{corner1 + n * src.bounds.size()[I] - n,
+                         corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int i_src = src.d_src + (pos - corner1)[src.direction];
@@ -765,7 +779,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         VecNi<D> n = basisVec<D>(I, 1);
         VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
 
-        forEachCell(RectNi<D>{corner1, corner2}, [&](VecNi<D> pos)
+        forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int i_src = src.d_src + (pos - corner1)[src.direction] - 1;
@@ -775,8 +789,8 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
             A[k][i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
 
-        forEachCell(RectNi<D>{corner1 + n * src.bounds.size()[I] - n,
-                              corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
+        forEachCell(Rect{corner1 + n * src.bounds.size()[I] - n,
+                         corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
             int i_src = src.d_src + (pos - corner1)[src.direction];

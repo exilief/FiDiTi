@@ -12,6 +12,10 @@ struct Rect
 {
     Vec<D, T> min, max;
 
+    Rect(Vec<D, T> min, Vec<D, T> max) : min(min), max(max) { }
+
+    explicit Rect(Vec<D, T> max) : max(max) { }
+
     Vec<D, T> size() const { return max - min; }
 
     Vec<D, T> corner(int i) const
@@ -34,6 +38,19 @@ struct Rect
         for (int i = 0; i < D; ++i)
             vol *= max[i] - min[i];
         return vol;
+    }
+
+    bool contains(const Vec<D, T>& v)
+    {
+        for (int i = 0; i < D; ++i)
+            if (v[i] < min[i] || v[i] > max[i])
+                return false;
+        return true;
+    }
+
+    bool contains(const Rect<D, T>& r)
+    {
+        return contains(r.min) && contains(r.max);
     }
 };
 
@@ -71,16 +88,6 @@ template <int D, class T>
 Rect<D, T> clamp(const Rect<D, T>& r, const Rect<D, T>& bounds)
 {
     return {clamp(r.min, bounds), clamp(r.max, bounds)};
-}
-
-
-template <int D, class T>
-bool contains(const Rect<D, T>& r, const Vec<D, T>& v)
-{
-    for (int i = 0; i < D; ++i)
-        if (v[i] < r.min[i] || v[i] > r.max[i])
-            return false;
-    return true;
 }
 
 
@@ -129,6 +136,25 @@ template <int D, class F>
 void forEachCell(const Rect<D, int>& grid, F f)  // forEachSubRect
 {
     forEachPoint(Rect<D, int>{grid.min, grid.max - 1}, std::move(f));
+}
+
+// Exclusive scan (product)
+template <int D>
+Vec<D, int> indexStride(Vec<D, int> gridSize)
+{
+    Vec<D, int> n(1);
+    for (int i = 1; i < D; ++i)
+        n[i] = n[i-1] * gridSize[i-1];
+    return n;
+}
+
+template <int D, class F>
+void forEachIndex(const Rect<D, int>& subRect, Vec<D, int> gridSize, F f)
+{
+    assert(Rect(gridSize).contains(subRect));
+
+    Vec stride = indexStride(gridSize);
+    forEachCell(subRect, [&] (Vec<D, int> p) { f(dot(p, stride)); });
 }
 
 
