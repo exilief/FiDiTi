@@ -358,7 +358,7 @@ class FDTD
 
     void addPlaneSource(Boundary b)  // TODO: LineSource
     {
-        forEachIndex(boundaryRect(b), [&](int index) { addHardSource(to_vec(index)); });
+        forEachIndex(boundaryRect(b), N, [&](int index) { addHardSource(to_vec(index)); });
     }
 
     void addTfsfSource()
@@ -392,22 +392,9 @@ class FDTD
         std::vector<int> cells;
         cells.reserve(bounds.volume());
 
-        forEachIndex(bounds, [&](int index) { cells.push_back(index); });
+        forEachIndex(bounds, N, [&](int index) { cells.push_back(index); });
 
         return cells;
-    }
-
-    // bounds: {0,N} -> N cells, N+1 points
-    template <class F>
-    void forEachIndex(const RectNi<D>& bounds, F f) const
-    {
-        forEachCell(bounds, [&](VecNi<D> p) { f(to_idx(p)); });
-    }
-
-    template <class F>
-    void forEachIndex(const RectNi<D>& bounds, F f)
-    {
-        forEachCell(bounds, [&](VecNi<D> p) { f(to_idx(p)); });
     }
 
     VecNi<D> gridSize() const
@@ -678,7 +665,7 @@ class FDTD
     {
         std::ofstream out("out/fdtd1d." + std::to_string(frame++) + ".txt");
 
-        forEachIndex(rect, [&](int i){ out << A[i] << "\n"; });
+        forEachIndex(rect, N, [&](int i){ out << A[i] << "\n"; });
     }
 
     // Assumes Rect is a 2D-slice (thickness 1) for D = 3

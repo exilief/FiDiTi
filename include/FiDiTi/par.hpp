@@ -98,6 +98,15 @@ void forEachCell(const Rect<D, int>& grid, F f)
     par::forEachPoint(Rect<D, int>{grid.min, grid.max - 1}, std::move(f));
 }
 
+template <int D, class F>
+void forEachIndex(const Rect<D, int>& subRect, Vec<D, int> gridSize, F f)
+{
+    assert(Rect(gridSize).contains(subRect));
+
+    Vec stride = indexStride(gridSize);
+    par::forEachCell(subRect, [&] (Vec<D, int> p) { f(dot(p, stride)); });
+}
+
 
 } // namespace fidi::par
 
