@@ -55,20 +55,20 @@ void forEachPoint(const Rect<D, int>& grid, F f)
 
     if constexpr(D == 1)
     {
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
         for (int i = grid.min.x; i <= grid.max.x; ++i)
             f(i);
     }
     else if constexpr(D == 2)
     {
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
         for (int j = grid.min.y; j <= grid.max.y; ++j)
             for (int i = grid.min.x; i <= grid.max.x; ++i)
                 f(Vec2i{i, j});
     }
     else if constexpr(D == 3)
     {
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
         for (int k = grid.min.z; k <= grid.max.z; ++k)
             for (int j = grid.min.y; j <= grid.max.y; ++j)
                 for (int i = grid.min.x; i <= grid.max.x; ++i)

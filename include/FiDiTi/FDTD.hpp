@@ -2,6 +2,8 @@
 #define FIDITI_FDTD_HPP
 
 #include "Math/Rect.hpp"
+#include "par.hpp"
+#include "Util/Time.hpp"
 
 #include <cmath>
 #include <vector>
@@ -239,6 +241,8 @@ class FDTD
     int frame = 0;          // Output frame counter
     int frameInterval = 6;  // Output interval; 0 means no automatic printing
 
+    Timings ts;
+
  public:
     FDTD(VecNi<D> gridSize)
       : FDTD(gridSize, 1 / std::sqrt(D))
@@ -266,13 +270,13 @@ class FDTD
 
     int step()
     {
-        ensureInitialState();
+        ensureInitialState();               ts.start();
 
-        updateFieldB();
-        applySourcesB(timeStep + 0.5);
+        updateFieldB();                     ts.add("B");
+        applySourcesB(timeStep + 0.5);      ts.add("SrcB");
 
-        updateFieldA();
-        applySourcesA(timeStep + 1);
+        updateFieldA();                     ts.add("A");
+        applySourcesA(timeStep + 1);        ts.add("SrcA");
 
         return ++timeStep;
     }
@@ -283,9 +287,14 @@ class FDTD
 
         for (int q = 0; q < numSteps; ++q)
         {
-            step();
-            print();
+            step();                         ts.start();
+            print();                        ts.add("print");
         }
+
+
+        std::cout << "Times (ms):\n" << std::left;
+        for (std::string str : {"A", "B", "SrcA", "SrcB", "print"})
+            std::cout << "  " << std::setw(7) << str + ": " << ts.real_ms(str) << ", " << ts.cpu_ms(str) << " (CPU)\n";
     }
 
     // Call this only after adding all sources, to set the initial fields

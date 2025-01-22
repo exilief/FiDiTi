@@ -129,5 +129,7 @@ int main()
         //addWedge(sim, N, matIds);
     }
 
+    par::set_num_threads(1);
+
     sim.run(152 + N[0]);
 }
