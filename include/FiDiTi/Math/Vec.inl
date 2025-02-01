@@ -19,8 +19,19 @@ constexpr Vec<N,T>::Vec(const Vec<N,U>& vec)
 template <int N, class T>
 Vec<N,T> basisVec(int i, T x, T fill)
 {
+    assert(i < N);
+
     Vec<N,T> v(fill);
     v[i] = x;
+    return v;
+}
+
+template <int N, class T>
+Vec<N,T> basisVec0(int i, T x, T fill)
+{
+    Vec<N,T> v(fill);
+    if (i < N)
+        v[i] = x;
     return v;
 }
 

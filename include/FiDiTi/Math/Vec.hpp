@@ -36,6 +36,10 @@ struct Vec
 template <int N, class T>
 Vec<N, T> basisVec(int i, T x = 1, T fill = {});
 
+// Zero if i > N-1
+template <int N, class T>
+Vec<N, T> basisVec0(int i, T x = 1, T fill = {});
+
 template <int N, int N0, class T>
 Vec<N, T> resize(const Vec<N0, T>& v);
 

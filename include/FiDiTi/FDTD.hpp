@@ -739,14 +739,15 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         if (I == compA || B[k].empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
-        VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
+        VecNi<D> corner1 = src.bounds.min;
+        VecNi<D> corner2 = corner1 + project(src.bounds.size(), I) + n - basisVec0<D>(compA, 1);
+
+        int sign = ((k+1) % 3 == I) ? -1 : 1;  // dB/dt = -C*rot(A)
 
         forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos - n);
             int i_src = src.d_src + (pos - corner1)[src.direction];
-
-            int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
             B[k][i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
@@ -756,8 +757,6 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         {
             int i = to_idx(pos);
             int i_src = src.d_src + (pos - corner1)[src.direction];
-
-            int sign = -1 + 2*int((k+1) % 3 != I);  // dB/dt = -C*rot(A)
 
             B[k][i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
@@ -773,14 +772,15 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         if (I == compB || A[k].empty()) continue;
 
         VecNi<D> n = basisVec<D>(I, 1);
-        VecNi<D> corner1 = src.bounds.min, corner2 = corner1 + project(src.bounds.size(), I) + n;
+        VecNi<D> corner1 = src.bounds.min;
+        VecNi<D> corner2 = corner1 + project(src.bounds.size(), I) + n - basisVec0<D>(k, 1);
+
+        int sign = ((k+1) % 3 == I) ? 1 : -1;  // dA/dt = C*rot(B)
 
         forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = src.d_src + (pos - corner1)[src.direction] - 1;
-
-            int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
+            int i_src = src.d_src + (pos - n - corner1)[src.direction];
 
             A[k][i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
@@ -790,8 +790,6 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         {
             int i = to_idx(pos);
             int i_src = src.d_src + (pos - corner1)[src.direction];
-
-            int sign = 1 - 2*int((k+1) % 3 != I);  // dA/dt = C*rot(B)
 
             A[k][i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
