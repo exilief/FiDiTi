@@ -1,0 +1,31 @@
+# Lengths in micrometers
+
+# Domain
+gridDelta=0.01
+xExtent=0.5
+yExtent=0.2
+
+# Geometry
+numHoles=5
+holeWidth=0.03
+holeDepth=0.04
+maskHeight=0.04
+bulkHeight=0.4
+airHeight=0.08  # Extra space for adding a lens on top in postprocessing
+
+# Process parameters
+processTime=10 # seconds 
+
+# Flux values in 1e16 / cm²
+ionFlux=1.
+etchantFlux=180.
+oxygenFlux=30.
+
+ionExponent=200
+meanEnergy=100 # eV
+sigmaEnergy=10 # eV
+A_O=3 # passivation layer sputtering coefficient
+
+etchStopDepth=-1000 # maximum etching depth
+
+raysPerPoint=500
