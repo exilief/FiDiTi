@@ -56,6 +56,9 @@ Vec<D, int> signum(const Vec<D, T>& v);
 template <int D, class T>
 T dot(const Vec<D, T>&, const Vec<D, T>&);
 
+template <int D, class T>
+T len_sq(const Vec<D, T>&);
+
 // Project onto coordinate plane with axis i (set component i to zero)
 template <int D, class T>
 Vec<D, T> project(Vec<D, T> v, int i);

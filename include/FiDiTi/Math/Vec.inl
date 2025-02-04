@@ -78,6 +78,12 @@ T dot(const Vec<D, T>& v1, const Vec<D, T>& v2)
 }
 
 template <int D, class T>
+T len_sq(const Vec<D, T>& v)
+{
+    return dot(v, v);
+}
+
+template <int D, class T>
 Vec<D, T> project(Vec<D, T> v, int i)
 {
     assert(i < D);

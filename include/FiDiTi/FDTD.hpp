@@ -370,9 +370,9 @@ class FDTD
         forEachIndex(boundaryRect(b), N, [&](int index) { addHardSource(to_vec(index)); });
     }
 
-    void addTfsfSource()
+    void addTfsfSource(int dir = 0)
     {
-        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c);
+        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c, dir);
     }
 
     std::vector<int> boundaryCells(Boundary b, int width = 1, int offsetMin = 0, int offsetMax = 0) const

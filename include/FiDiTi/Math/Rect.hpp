@@ -16,6 +16,9 @@ struct Rect
 
     explicit Rect(Vec<D, T> max) : max(max) { }
 
+    template <class U>
+    explicit Rect(const Rect<D, U>& r) : min(r.min), max(r.max) { }
+
     Vec<D, T> size() const { return max - min; }
 
     Vec<D, T> corner(int i) const
