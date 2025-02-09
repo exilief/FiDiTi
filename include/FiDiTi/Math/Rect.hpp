@@ -12,6 +12,8 @@ struct Rect
 {
     Vec<D, T> min, max;
 
+    Rect() = default;
+
     Rect(Vec<D, T> min, Vec<D, T> max) : min(min), max(max) { }
 
     explicit Rect(Vec<D, T> max) : max(max) { }

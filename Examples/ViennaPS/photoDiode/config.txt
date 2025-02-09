@@ -29,3 +29,10 @@ A_O=3 # passivation layer sputtering coefficient
 etchStopDepth=-1000 # maximum etching depth
 
 raysPerPoint=500
+
+
+
+# Electric material parameters
+lensPermittivity=1.96
+passivationPermittivity=4.0
+siliconPermittivity=15.813

@@ -9,6 +9,8 @@
 namespace ps = viennaps;
 namespace cs = viennacs;
 
+//const int lensMaterial = ps::Material::PolySi;
+
 int main(int argc, char *argv[]) {
   using Scalar = double;
   constexpr int D = 2;
@@ -25,6 +27,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  bool withMask = false;
+
   // geometry setup
   auto geometry = makeGeometry<Scalar, D>(
       params.get("xExtent"), params.get("yExtent"),
@@ -35,7 +39,7 @@ int main(int argc, char *argv[]) {
       params.get("holeDepth"),
       params.get("maskHeight"),
       0. /*baseHeight*/,
-      false /*create mask*/);
+      withMask);
     //ps::Material::Si
 
 #if 0
@@ -73,10 +77,13 @@ int main(int argc, char *argv[]) {
   auto levelSets = geometry->getLevelSets();
   auto materialMap = geometry->getMaterialMap();
 
-  levelSets = changeGridSpacing(levelSets, 0.8);
+  Scalar dxScale = 0.8;
+  Scalar gridDelta = dxScale * params.get("gridDelta");
+  levelSets = changeGridSpacing(levelSets, dxScale);
 
   auto cellSet = cs::SmartPointer<cs::DenseCellSet<Scalar, D>>::New();
   cellSet->setCellSetPosition(/*isAboveSurface*/ true);
+  cellSet->setCoverMaterial(int(ps::Material::Air));
   cellSet->fromLevelSets(levelSets, materialMap ? materialMap->getMaterialMap() : nullptr, height);
   cellSet->writeVTU("initial.vtu");
 
@@ -84,9 +91,23 @@ int main(int argc, char *argv[]) {
   //auto& cellSet = geometry->getCellSet();
 
   // Add lens
-  //setSphereMaterial(*cellSet->getScalarData("Material"), fieldSize, bounds, center, radius, material);
+  using namespace fidi;
+  Vec<D, int> csGridSize = computeGridSize(*cellSet);
+  Rect<D, Scalar> lensBounds(resize<D>(Vec<2, Scalar>(params.get("xExtent"), params.get("yExtent"))));
+  lensBounds.min[D-1] = params.get("bulkHeight") + params.get("holeDepth") + params.get("gridDelta");
+  lensBounds.max[D-1] = lensBounds.min[D-1] + params.get("airHeight");
+  setSphereMaterial(*cellSet->getScalarData("Material"), csGridSize, lensBounds,
+                    project(lensBounds.max / Scalar(2), D-1), height, int(ps::Material::PolySi), gridDelta);
 
-  runFDTD(*cellSet);
+
+  fdtd::MaterialMap matMap;
+  matMap.emplace(int(ps::Material::Air),     fdtd::Material{1, 1});
+  matMap.emplace(int(ps::Material::Si),      fdtd::Material{params.get("siliconPermittivity"), 1});
+  matMap.emplace(int(ps::Material::SiN),     fdtd::Material{params.get("passivationPermittivity"), 1});
+  matMap.emplace(int(ps::Material::PolySi),  fdtd::Material{params.get("lensPermittivity"), 1});
+
+
+  runFDTD(*cellSet, std::move(matMap));
   std::cout << "FDTD done\n";
 
   cellSet->writeVTU("final.vtu");
