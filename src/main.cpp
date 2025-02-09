@@ -115,7 +115,7 @@ int main()
     int s = 2;
     if(s==0) sim.addHardSource(N/2);                    // Point source
     if(s==1) sim.addPlaneSource(fdtd::Boundary::XMin);  // Array/plane of point sources
-    if(s==2) sim.addTfsfSource();                       // TF/SF plane source
+    if(s==2) sim.addTfsfSource(0, -1);                  // TF/SF plane source
 
     // Set boundary type here:
     int b = 1;
@@ -125,7 +125,7 @@ int main()
     //addScatterer<D>(sim, N, matIds);
     if constexpr(D > 1)
     {
-        addOpening(sim, N, matIds);
+        //addOpening(sim, N, matIds);
         //addWedge(sim, N, matIds);
     }
 

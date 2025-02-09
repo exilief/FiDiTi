@@ -370,9 +370,9 @@ class FDTD
         forEachIndex(boundaryRect(b), N, [&](int index) { addHardSource(to_vec(index)); });
     }
 
-    void addTfsfSource(int dir = 0)
+    void addTfsfSource(int dirAxis = 0, int dirSign = 1)
     {
-        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c, dir);
+        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c, dirAxis, dirSign);
     }
 
     std::vector<int> boundaryCells(Boundary b, int width = 1, int offsetMin = 0, int offsetMax = 0) const
@@ -703,33 +703,50 @@ class FDTD
 template <int D>
 struct TFSF
 {
-    TFSF(RectNi<D> tfRegion, Scalar S_c, int dir = 0)
+    RectNi<D> bounds;  // Interface components: B outside, A inside (at boundary)
+    int component = 2;  // Assume field A is excited (z-component), component != direction
+    //int direction = 0;  // Plane wave travel direction (coord axis)
+    int axis = 0;  // Plane wave travel direction axis
+    int sign = 1;  // Travel direction = sign * basisVec<D>(axis)
+
+    FDTD<1> sim1d;  // Assume point 1 is aligned with the interface corner, point 0 outside
+
+    int d_src = 1;  // Distance between source (1D simulation) and TF/SF interface
+
+
+    TFSF(RectNi<D> tfRegion, Scalar S_c, int dirAxis = 0, int dirSign = 1)
       : bounds(tfRegion),
-        direction(dir),
-        sim1d(tfRegion.size()[dir] + 20, S_c)
+        axis(dirAxis),
+        sign(dirSign),
+        sim1d(tfRegion.size()[axis] + 20, S_c)
     {
         sim1d.addHardSource(0);
         sim1d.addAbsorbingBoundary(Boundary::XMax, 2);  // TODO: Use impedance-matched lossy region instead
         sim1d.ensureInitialState();
     }
 
-    RectNi<D> bounds;  // Interface components: B outside, A inside (at boundary)
-    int direction = 0;  // Plane wave travel direction (coord axis)
-    int component = 2;  // Assume field A is excited (z-component), component != direction
+    int parity() const
+    {
+        return sign * (((component+1) % 3 == axis) ? 1 : -1);
+    }
 
-    FDTD<1> sim1d;  // Assume point 1 is aligned with the interface corner, point 0 outside
-
-    int d_src = 1;  // Distance between source (1D simulation) and TF/SF interface
+    int to_idx(VecNi<D> cellPos, bool isB) const
+    {
+        // Half-cell offsets of B-field must be reversed
+        int shift = -int(sign < 0 && isB);
+        auto corner = (sign < 0) ? bounds.max - 1 : bounds.min;
+        return d_src + (cellPos - corner)[axis] * sign + shift;
+    }
 };
 
 
 template <int D>
 void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
 {
-    int compA = src.component, compB = 3 - compA - src.direction;
+    int compA = src.component, compB = 3 - compA - src.axis;
 
-    // Assume the 1D simulation has Az, By -> Rotate for Ax, Ay
-    int signB1 = ((src.component+1) % 3 == src.direction) ? 1 : -1;
+    // 1D simulation: Az, By -> Rotate to align components, flip B if opposite axis order
+    int signB1 = src.parity();
 
     // SF Correction
     for (int I = 0; I < D; ++I)
@@ -747,7 +764,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos - n);
-            int i_src = src.d_src + (pos - corner1)[src.direction];
+            int i_src = src.to_idx(pos, false);
 
             B[k][i] -= src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
@@ -756,7 +773,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
                          corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = src.d_src + (pos - corner1)[src.direction];
+            int i_src = src.to_idx(pos, false);
 
             B[k][i] += src.sim1d.fieldA(2)[i_src] * cBA[i] * sign;
         });
@@ -780,7 +797,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
         forEachCell(Rect{corner1, corner2}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = src.d_src + (pos - n - corner1)[src.direction];
+            int i_src = src.to_idx(pos - n, true);
 
             A[k][i] -= src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
@@ -789,7 +806,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
                          corner2 + n * src.bounds.size()[I] - n}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int i_src = src.d_src + (pos - corner1)[src.direction];
+            int i_src = src.to_idx(pos, true);
 
             A[k][i] += src.sim1d.fieldB(1)[i_src] * cAB[i] * sign * signB1;
         });
