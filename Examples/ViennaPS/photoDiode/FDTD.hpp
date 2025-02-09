@@ -63,7 +63,7 @@ auto shrinkField(const std::vector<Scalar>& field, fidi::Vec<D, int> fieldSize, 
 }
 
 template <class Scalar, int D>
-fidi::Vec<D, int> computeGridSize(const viennacs::DenseCellSet<Scalar, D>& cellSet)
+fidi::Vec<D, int> getGridSize(const viennacs::DenseCellSet<Scalar, D>& cellSet)
 {
     auto dx = cellSet.getGridDelta();
     auto [min, max] = cellSet.getBoundingBox();
@@ -73,6 +73,23 @@ fidi::Vec<D, int> computeGridSize(const viennacs::DenseCellSet<Scalar, D>& cellS
         csGridSize[i] = std::round((max[i] - min[i]) / dx);
 
     return csGridSize;
+}
+
+template <class Scalar, int D>
+fidi::Rect<D, Scalar> getBounds(const viennacs::DenseCellSet<Scalar, D>& cellSet)
+{
+    auto [min, max] = cellSet.getBoundingBox();
+
+    return {fidi::toVec<D>(&min[0]), fidi::toVec<D>(&max[0])};
+
+    /*fidi::Rect<D, Scalar> csBounds;
+    for (int i = 0; i < D; ++i)
+    {
+        csBounds.min[i] = min[i];
+        csBounds.max[i] = max[i];
+    }
+
+    return csBounds;*/
 }
 
 template <class Scalar, int D>
@@ -120,7 +137,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     auto numCells = cellSet.getNumberOfCells();
     auto dx = cellSet.getGridDelta();
 
-    Vec<D, int> csGridSize = computeGridSize(cellSet);
+    Vec<D, int> csGridSize = getGridSize(cellSet);
 
     // Manually extend grid on all sides for absorbing boundary + TF/SF interface
     int extend = 5 + 2;
@@ -145,5 +162,4 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
         if (!(q % frameInterval))
             print(sim, cellSet, innerBounds, q+1);
     }
-    //sim.run(150);
 }

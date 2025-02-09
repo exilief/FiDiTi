@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
 
   // Add lens
   using namespace fidi;
-  Vec<D, int> csGridSize = computeGridSize(*cellSet);
-  Rect<D, Scalar> lensBounds(resize<D>(Vec<2, Scalar>(params.get("xExtent"), params.get("yExtent"))));
+  Vec<D, int> csGridSize = getGridSize(*cellSet);
+  Rect<D, Scalar> lensBounds(getBounds(*cellSet).size());
   lensBounds.min[D-1] = params.get("bulkHeight") + params.get("holeDepth") + params.get("gridDelta");
   lensBounds.max[D-1] = lensBounds.min[D-1] + params.get("airHeight");
   setSphereMaterial(*cellSet->getScalarData("Material"), csGridSize, lensBounds,

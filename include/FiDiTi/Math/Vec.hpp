@@ -43,6 +43,9 @@ Vec<N, T> basisVec0(int i, T x = 1, T fill = {});
 template <int N, int N0, class T>
 Vec<N, T> resize(const Vec<N0, T>& v);
 
+template <int N, class T>
+Vec<N, T> toVec(const T* data);
+
 
 // -1, +1 (includes 0)
 template <int D, class T>

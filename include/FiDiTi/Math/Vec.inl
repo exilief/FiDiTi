@@ -47,6 +47,17 @@ Vec<N, T> resize(const Vec<N0, T>& v)
     return u;
 }
 
+template <int N, class T>
+Vec<N, T> toVec(const T* data)
+{
+    Vec<N, T> v;
+
+    for (int i = 0; i < N; ++i)
+        v[i] = data[i];
+
+    return v;
+}
+
 
 
 template <int D, class T>
