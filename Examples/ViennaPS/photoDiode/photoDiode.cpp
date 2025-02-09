@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
   bool withMask = false;
 
-  // geometry setup
+  // Geometry setup
   auto geometry = makeGeometry<Scalar, D>(
       params.get("xExtent"), params.get("yExtent"),
       params.get("gridDelta"),
@@ -40,10 +40,9 @@ int main(int argc, char *argv[]) {
       params.get("maskHeight"),
       0. /*baseHeight*/,
       withMask);
-    //ps::Material::Si
 
 #if 0
-  // use pre-defined model SF6O2 etching model
+  // SF6O2 etching
   auto model = ps::SmartPointer<ps::SF6O2Etching<Scalar, D>>::New(
       params.get("ionFlux"),
       params.get("etchantFlux"),
@@ -77,9 +76,10 @@ int main(int argc, char *argv[]) {
   auto levelSets = geometry->getLevelSets();
   auto materialMap = geometry->getMaterialMap();
 
-  Scalar dxScale = 0.8;
+  Scalar dxScale = 1.0;
   Scalar gridDelta = dxScale * params.get("gridDelta");
-  levelSets = changeGridSpacing(levelSets, dxScale);
+
+  if (dxScale != 1.0) levelSets = changeGridSpacing(levelSets, dxScale);
 
   auto cellSet = cs::SmartPointer<cs::DenseCellSet<Scalar, D>>::New();
   cellSet->setCellSetPosition(/*isAboveSurface*/ true);

@@ -1,16 +1,17 @@
 # Lengths in micrometers
 
 # Domain
-gridDelta=0.01
+gridDelta=0.004
 xExtent=0.5
 yExtent=0.2
 
 # Geometry
-numHoles=5
+numHoles=7
 holeWidth=0.03
 holeDepth=0.04
-maskHeight=0.04
 bulkHeight=0.4
+maskHeight=0.04
+passivationHeight=0.004
 airHeight=0.08  # Extra space for adding a lens on top in postprocessing
 
 # Process parameters

@@ -704,8 +704,7 @@ template <int D>
 struct TFSF
 {
     RectNi<D> bounds;  // Interface components: B outside, A inside (at boundary)
-    int component = 2;  // Assume field A is excited (z-component), component != direction
-    //int direction = 0;  // Plane wave travel direction (coord axis)
+    int component = 2;  // Assume field A is excited (z-component), component != axis
     int axis = 0;  // Plane wave travel direction axis
     int sign = 1;  // Travel direction = sign * basisVec<D>(axis)
 

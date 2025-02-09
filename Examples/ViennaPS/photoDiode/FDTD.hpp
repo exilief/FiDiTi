@@ -122,8 +122,8 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
 
     Vec<D, int> csGridSize = computeGridSize(cellSet);
 
-    // Manually extend grid on all sides for absorbing boundary
-    int extend = 5;
+    // Manually extend grid on all sides for absorbing boundary + TF/SF interface
+    int extend = 5 + 2;
     Vec<D, int> N = csGridSize + 2*extend;
     Rect<D, int> innerBounds = {Vec<D, int>(extend), N - extend};
 
@@ -133,7 +133,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     sim.setCellMaterials(extractMaterials(cellSet, N, innerBounds));
 
     //sim.addHardSource(N/2);
-    sim.addTfsfSource(1);
+    sim.addTfsfSource(1, -1);
     sim.addAbsorbingBoundary(2);
 
     int numSteps = 150;
