@@ -144,7 +144,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     sim.addTfsfSource(1, -1);
     sim.addAbsorbingBoundary(2);
 
-    int numSteps = 165;
+    int numSteps = 180;
     int frameInterval = 5;
     for (int q = 0; q < numSteps; ++q)
     {

@@ -119,6 +119,7 @@ class Builder
     }
 };
 
+
 template <class T, int D>
 auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
                   int numHoles, T holeWidth, T holeDepth,
@@ -151,16 +152,34 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
     auto roof = builder.createPlate(roofBottom, roofHeight);
     builder.cutHoles(roof, numHoles, holeWidth, bounds[0], bounds[1], roofBottom, roofHeight);
 
-    builder.combine(bulk, roof);
-
     auto passivation = builder.createPlane(bulkTop + passivationHeight);
 
     domain->insertNextLevelSetAsMaterial(base, ps::Material::Si);
+    if (!withMask)
+        builder.combine(bulk, roof);
+    domain->insertNextLevelSetAsMaterial(bulk, ps::Material::Si);
     if (withMask)
         domain->insertNextLevelSetAsMaterial(roof, ps::Material::Mask);
-    domain->insertNextLevelSetAsMaterial(bulk, ps::Material::Si);
 
     domain->insertNextLevelSetAsMaterial(passivation, ps::Material::SiN, false);
 
     return domain;
+}
+
+
+// Returns a pair of arrays containing the top level-sets and their materials, removed from the domain
+template <class Domain>
+auto extractTopLevelSets(Domain& domain, int num)
+{
+    auto& levelSets = domain->getLevelSets();
+    std::vector topLayers(levelSets.end() - num, levelSets.end());
+    std::vector<ps::Material> topMaterials(num);
+
+    for (int i = 0; i < num; ++i)
+    {
+        topMaterials[num - 1 - i] = domain->getMaterialMap()->getMaterialAtIdx(levelSets.size() - 1 - i);
+        domain->removeTopLevelSet();
+    }
+
+    return std::pair{topLayers, topMaterials};
 }

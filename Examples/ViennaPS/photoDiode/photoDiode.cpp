@@ -44,6 +44,9 @@ int main(int argc, char *argv[]) {
 
   if (withEtching)
   {
+    // Save passivation layer to re-add after etching
+    auto [extraLayers, extraMaterials] = extractTopLevelSets(domain, 1);
+
     // SF6O2 etching model
     auto model = ps::SmartPointer<ps::SF6O2Etching<Scalar, D>>::New(
         params.get("ionFlux"),
@@ -66,9 +69,16 @@ int main(int argc, char *argv[]) {
 
     domain->saveSurfaceMesh("initial.vtp");
 
-    //process.apply();
+    process.apply();
 
     domain->saveSurfaceMesh("final.vtp");
+
+
+    // Remove mask
+    domain->removeTopLevelSet();
+
+    for (int i = 0; i < extraLayers.size(); ++i)
+      domain->insertNextLevelSetAsMaterial(extraLayers[i], extraMaterials[i], false);
   }
 
 
@@ -79,7 +89,7 @@ int main(int argc, char *argv[]) {
   auto levelSets = domain->getLevelSets();
   auto materialMap = domain->getMaterialMap();
 
-  Scalar dxScale = 1.0;
+  Scalar dxScale = 0.5;
   Scalar gridDelta = dxScale * params.get("gridDelta");
 
   if (dxScale != 1.0) levelSets = changeGridSpacing(levelSets, dxScale);
