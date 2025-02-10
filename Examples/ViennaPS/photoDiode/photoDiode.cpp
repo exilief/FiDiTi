@@ -27,54 +27,57 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  bool withMask = false;
+  bool withEtching = false;
 
   // Geometry setup
-  auto geometry = makeGeometry<Scalar, D>(
+  auto domain = makeGeometry<Scalar, D>(
       params.get("xExtent"), params.get("yExtent"),
       params.get("gridDelta"),
       params.get("bulkHeight"),
       params.get("numHoles"),
       params.get("holeWidth"),
       params.get("holeDepth"),
+      params.get("passivationHeight"),
       params.get("maskHeight"),
       0. /*baseHeight*/,
-      withMask);
+      withEtching);
 
-#if 0
-  // SF6O2 etching
-  auto model = ps::SmartPointer<ps::SF6O2Etching<Scalar, D>>::New(
-      params.get("ionFlux"),
-      params.get("etchantFlux"),
-      params.get("oxygenFlux"),
-      params.get("meanEnergy"),
-      params.get("sigmaEnergy"),
-      params.get("ionExponent") /*source power cosine distribution exponent*/,
-      params.get("A_O") /*oxy sputter yield*/,
-      params.get("etchStopDepth") /*max etch depth*/);
+  if (withEtching)
+  {
+    // SF6O2 etching model
+    auto model = ps::SmartPointer<ps::SF6O2Etching<Scalar, D>>::New(
+        params.get("ionFlux"),
+        params.get("etchantFlux"),
+        params.get("oxygenFlux"),
+        params.get("meanEnergy"),
+        params.get("sigmaEnergy"),
+        params.get("ionExponent") /*source power cosine distribution exponent*/,
+        params.get("A_O") /*oxy sputter yield*/,
+        params.get("etchStopDepth") /*max etch depth*/);
 
-  // process setup
-  ps::Process<Scalar, D> process;
-  process.setDomain(geometry);
-  process.setProcessModel(model);
-  process.setMaxCoverageInitIterations(10);
-  process.setNumberOfRaysPerPoint(params.get("raysPerPoint"));
-  process.setProcessDuration(params.get("processTime"));
-#endif
-
-  geometry->saveSurfaceMesh("initial.vtp");
-
-  //process.apply();
-
-  geometry->saveSurfaceMesh("final.vtp");
+    // Process setup
+    ps::Process<Scalar, D> process;
+    process.setDomain(domain);
+    process.setProcessModel(model);
+    process.setMaxCoverageInitIterations(10);
+    process.setNumberOfRaysPerPoint(params.get("raysPerPoint"));
+    process.setProcessDuration(params.get("processTime"));
 
 
+    domain->saveSurfaceMesh("initial.vtp");
+
+    //process.apply();
+
+    domain->saveSurfaceMesh("final.vtp");
+  }
 
 
-  Scalar height = params.get("bulkHeight") + params.get("holeDepth") + params.get("airHeight") + params.get("gridDelta");
 
-  auto levelSets = geometry->getLevelSets();
-  auto materialMap = geometry->getMaterialMap();
+
+  Scalar height = params.get("bulkHeight") + params.get("passivationHeight") + params.get("airHeight") + params.get("gridDelta");
+
+  auto levelSets = domain->getLevelSets();
+  auto materialMap = domain->getMaterialMap();
 
   Scalar dxScale = 1.0;
   Scalar gridDelta = dxScale * params.get("gridDelta");
@@ -87,14 +90,14 @@ int main(int argc, char *argv[]) {
   cellSet->fromLevelSets(levelSets, materialMap ? materialMap->getMaterialMap() : nullptr, height);
   cellSet->writeVTU("initial.vtu");
 
-  //geometry->generateCellSet(-5.0, ps::Material::Air, /*isAboveSurface*/ true)
-  //auto& cellSet = geometry->getCellSet();
+  //domain->generateCellSet(-5.0, ps::Material::Air, /*isAboveSurface*/ true)
+  //auto& cellSet = domain->getCellSet();
 
   // Add lens
   using namespace fidi;
   Vec<D, int> csGridSize = getGridSize(*cellSet);
   Rect<D, Scalar> lensBounds(getBounds(*cellSet).size());
-  lensBounds.min[D-1] = params.get("bulkHeight") + params.get("holeDepth") + params.get("gridDelta");
+  lensBounds.min[D-1] = params.get("bulkHeight") + params.get("passivationHeight") + params.get("gridDelta");
   lensBounds.max[D-1] = lensBounds.min[D-1] + params.get("airHeight");
   setSphereMaterial(*cellSet->getScalarData("Material"), csGridSize, lensBounds,
                     project(lensBounds.max / Scalar(2), D-1), height, int(ps::Material::PolySi), gridDelta);

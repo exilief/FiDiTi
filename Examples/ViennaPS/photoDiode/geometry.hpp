@@ -122,16 +122,16 @@ class Builder
 template <class T, int D>
 auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
                   int numHoles, T holeWidth, T holeDepth,
-                  T maskHeight, T baseHeight, bool withMask = false)
+                  T passivationHeight, T maskHeight, T baseHeight,
+                  bool withMask = false)
 {
-    using Boundary = typename viennals::Domain<T, D>::BoundaryType;
-
-
     auto domain = ps::SmartPointer<ps::Domain<T, D>>::New();
+
+    using Boundary = typename viennals::Domain<T, D>::BoundaryType;
 
     T bounds[2 * D] = {-xExtent / 2, xExtent / 2, -yExtent / 2, yExtent / 2};
     bounds[2*D - 2] = baseHeight - gridDelta;
-    bounds[2*D - 1] = baseHeight + bulkHeight + holeDepth + (withMask ? maskHeight : T(0)) + gridDelta;
+    bounds[2*D - 1] = baseHeight + bulkHeight + passivationHeight + (withMask ? maskHeight : T(0)) + gridDelta;
 
     Boundary bcs[D];
     for (int i = 0; i < D - 1; i++)
@@ -141,20 +141,26 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
 
     Builder<T, D> builder(bounds, bcs, gridDelta);
 
-    T bulkTop = baseHeight + bulkHeight + (withMask ? holeDepth : T(0));
-    auto fundament = builder.createPlane(baseHeight);
-    auto bulk = builder.createPlane(bulkTop);
-
+    T bulkTop = baseHeight + bulkHeight;
+    T roofBottom = withMask ? bulkTop : bulkTop - holeDepth;
     T roofHeight = withMask ? maskHeight : holeDepth;
-    auto roof = builder.createPlate(bulkTop, roofHeight);
-    builder.cutHoles(roof, numHoles, holeWidth, bounds[0], bounds[1], bulkTop, roofHeight);
+
+    auto base = builder.createPlane(baseHeight);
+    auto bulk = builder.createPlane(roofBottom);
+
+    auto roof = builder.createPlate(roofBottom, roofHeight);
+    builder.cutHoles(roof, numHoles, holeWidth, bounds[0], bounds[1], roofBottom, roofHeight);
 
     builder.combine(bulk, roof);
 
-    domain->insertNextLevelSetAsMaterial(fundament, ps::Material::Si);
+    auto passivation = builder.createPlane(bulkTop + passivationHeight);
+
+    domain->insertNextLevelSetAsMaterial(base, ps::Material::Si);
     if (withMask)
         domain->insertNextLevelSetAsMaterial(roof, ps::Material::Mask);
     domain->insertNextLevelSetAsMaterial(bulk, ps::Material::Si);
+
+    domain->insertNextLevelSetAsMaterial(passivation, ps::Material::SiN, false);
 
     return domain;
 }

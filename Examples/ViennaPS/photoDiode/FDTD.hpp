@@ -81,15 +81,6 @@ fidi::Rect<D, Scalar> getBounds(const viennacs::DenseCellSet<Scalar, D>& cellSet
     auto [min, max] = cellSet.getBoundingBox();
 
     return {fidi::toVec<D>(&min[0]), fidi::toVec<D>(&max[0])};
-
-    /*fidi::Rect<D, Scalar> csBounds;
-    for (int i = 0; i < D; ++i)
-    {
-        csBounds.min[i] = min[i];
-        csBounds.max[i] = max[i];
-    }
-
-    return csBounds;*/
 }
 
 template <class Scalar, int D>
@@ -153,7 +144,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     sim.addTfsfSource(1, -1);
     sim.addAbsorbingBoundary(2);
 
-    int numSteps = 150;
+    int numSteps = 165;
     int frameInterval = 5;
     for (int q = 0; q < numSteps; ++q)
     {
