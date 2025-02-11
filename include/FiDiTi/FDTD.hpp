@@ -4,6 +4,7 @@
 #include "Math/Rect.hpp"
 #include "par.hpp"
 #include "Util/Time.hpp"
+#include "Util/Array.hpp"
 
 #include <cmath>
 #include <vector>
@@ -428,89 +429,59 @@ class FDTD
 
 
  private:
+    void updateField(Field& A, const Field& B,
+                     const std::vector<Scalar>& cA, const std::vector<Scalar>& cB, bool shift)
+    {
+        RepeatArray<Scalar> null(0);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            int j = (i+1) % 3;
+            int k = (i+2) % 3;
+
+            if (A[i].empty()) continue;
+
+            if (B[j].empty())
+                update2D(A[i], null, B[k], cA, cB, i, shift);
+            else if (B[k].empty())
+                update2D(A[i], B[j], null, cA, cB, i, shift);
+            else
+                update2D(A[i], B[j], B[k], cA, cB, i, shift);
+        }
+    }
+
     void updateFieldA()
     {
-        if constexpr(D == 1)
-        {
-            //if (B.z.empty())
-            update1D(A.z, B.y, cAA, cAB, 1, true, +1);
-        }
-        else if constexpr(D == 2)
-        {
-            update2D(A.z, B.x, B.y, cAA, cAB, /*z*/ 2, true);
-        }
-        else if constexpr(D == 3)
-        {
-            for (int i = 0; i < 3; ++i)
-            {
-                int j = (i+1) % 3;
-                int k = (i+2) % 3;
-                update2D(A[i], B[j], B[k], cAA, cAB, i, true);
-            }
-        }
+        updateField(A, B, cAA, cAB, true);
     }
 
     void updateFieldB()
     {
-        if constexpr(D == 1)
-        {
-            update1D(B.y, A.z, cBB, cBA, 1, false, +1);
-        }
-        else if constexpr(D == 2)
-        {
-            update1D(B.y, A.z, cBB, cBA, {1, 0}, false, +1);
-            update1D(B.x, A.z, cBB, cBA, {0, 1}, false, -1);
-        }
-        else if constexpr(D == 3)
-        {
-            for (int i = 0; i < 3; ++i)
-            {
-                int j = (i+1) % 3;
-                int k = (i+2) % 3;
-                update2D(B[i], A[j], A[k], cBB, cBA, i, false);
-            }
-        }
+        updateField(B, A, cBB, cBA, false);
     }
 
-    // One component of dA/dt = +/- rot(B)  (with one component of B = const) (Central FD)
-    // sign: (sign of equation) * (sign of non-zero rot(B)-component)
-    // shift: Skip first value in each line (A-field)
-    void update1D(std::vector<Scalar>& A, std::vector<Scalar>& B,
-                  std::vector<Scalar>& c1, std::vector<Scalar>& c2,
-                  VecNi<D> dir, bool shift, int sign)
-    {
-        // 2D: Skip first line (B-field)
-        auto n_shift = (1 - dir) * int(!shift);
-        auto start = n_shift + dir * int(shift);
-
-        forEachCell(Rect{start, N - 1 + start}, [&](VecNi<D> pos)
-        {
-            int i = to_idx(pos);
-            int j1 = to_idx(pos - dir * int(shift)), j2 = to_idx(pos + dir * int(!shift));
-
-            A[i] = A[i] * c1[i] + (B[j2] - B[j1]) * c2[i] * sign;
-        });
-    }
-
-    // One component of dA/dt = rot(B) * sign  (Central FD)
+    // One component of dA/dt = +/- rot(B)  (Central FD)
     // (Example: dAz/dt = dBy/dx - dBx/dy => A = Az, B1 = Bx, B2 = By, sign = +1)
-    // shift: Skip first row/col (A-field)
-    void update2D(std::vector<Scalar>& A, std::vector<Scalar>& B1, std::vector<Scalar>& B2,
-                  std::vector<Scalar>& c1, std::vector<Scalar>& c2,
-                  int axis, bool shift)
+    // isA: (A-field) Skip first row/col, set sign
+    template <class FieldB1, class FieldB2>
+    void update2D(std::vector<Scalar>& A, const FieldB1& B1, const FieldB2& B2,
+                  const std::vector<Scalar>& c1, const std::vector<Scalar>& c2,
+                  int axis, bool isA)
     {
-        int sign = 1 - 2*int(!shift);
-        VecNi<D> dir1 = basisVec<D, int>((axis+1) % 3), dir2 = basisVec<D, int>((axis+2) % 3);
+        int sign = isA ? 1 : -1;
+        VecNi<D> dir1 = basisVec0<D, int>((axis+1) % 3);
+        VecNi<D> dir2 = basisVec0<D, int>((axis+2) % 3);
+        int d1 = dot(dir1, idxStride), d2 = dot(dir2, idxStride);
 
         // 3D: Skip first plane (B-field)
-        auto n_shift = (1 - dir1 - dir2) * int(!shift);
-        auto start = n_shift + (dir1 + dir2) * int(shift);
+        auto n_shift = (1 - dir1 - dir2) * int(!isA);
+        auto start = n_shift + (dir1 + dir2) * int(isA);
 
         forEachCell(Rect{start, N - 1 + start}, [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
-            int j1 = to_idx(pos - dir1 * int(shift)), j2 = to_idx(pos + dir1 * int(!shift));
-            int k1 = to_idx(pos - dir2 * int(shift)), k2 = to_idx(pos + dir2 * int(!shift));
+            int j1 = i - d1 * int(isA), j2 = i + d1 * int(!isA);
+            int k1 = i - d2 * int(isA), k2 = i + d2 * int(!isA);
 
             A[i] = A[i] * c1[i] + ((B2[j2] - B2[j1]) - (B1[k2] - B1[k1])) * c2[i] * sign;
         });

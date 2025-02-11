@@ -12,6 +12,9 @@ class RepeatArray
     T x = {};
 
  public:
+    RepeatArray() = default;
+    RepeatArray(T value) : x(value) { }
+
     const T& operator[](int i) const { return x; }
     T&       operator[](int i) { return x; }
 };

@@ -153,7 +153,7 @@ struct Vec<2, T>
 
     constexpr const T& operator[](int i) const
     {
-        assert(i < 2);
+        assert(i >= 0 && i < 2);
 
         switch(i)
         {
@@ -186,7 +186,7 @@ struct Vec<3, T>
 
     constexpr const T& operator[](int i) const
     {
-        assert(i < 3);
+        assert(i >= 0 && i < 3);
 
         switch(i)
         {

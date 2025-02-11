@@ -55,7 +55,7 @@ namespace
     void addOpening(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
     {
         Scalar alpha = toRad(75);  // Normal angle, from x-axis (+/- at top/bottom)
-        Scalar d = N.y * 0.36;     // Distance from corners
+        Scalar d = N[1] * 0.36;    // Distance from corners
 
         using VecT = Vec<D, Scalar>;
         VecT n[2] = {resize<D>(Vec2<Scalar>{std::cos(alpha), std::sin(alpha)}),
@@ -81,7 +81,7 @@ namespace
     void addWedge(FDTD<D>& sim, VecNi<D> N, std::vector<int>& matIds)
     {
         Scalar alpha = toRad(90+40);  // Normal angle of 2 faces (+/- at top/bottom)
-        Scalar l = N.x * 0.12;        // Length
+        Scalar l = N[0] * 0.12;       // Length
 
         using VecT = Vec<D, Scalar>;
         VecT c = VecT(N) / Scalar(2);  // Tip of the wedge
