@@ -9,8 +9,6 @@
 namespace ps = viennaps;
 namespace cs = viennacs;
 
-//const int lensMaterial = ps::Material::PolySi;
-
 int main(int argc, char *argv[]) {
   using Scalar = double;
   constexpr int D = 2;
@@ -34,18 +32,17 @@ int main(int argc, char *argv[]) {
       params.get("xExtent"), params.get("yExtent"),
       params.get("gridDelta"),
       params.get("bulkHeight"),
-      params.get("numHoles"),
-      params.get("holeWidth"),
-      params.get("holeDepth"),
+      params.get("numHoles"), params.get("holeWidth"), params.get("holeDepth"),
       params.get("passivationHeight"),
+      params.get("antiReflectHeight1"), params.get("antiReflectHeight2"),
       params.get("maskHeight"),
       0. /*baseHeight*/,
       withEtching);
 
   if (withEtching)
   {
-    // Save passivation layer to re-add after etching
-    auto [extraLayers, extraMaterials] = extractTopLevelSets(domain, 1);
+    // Save passivation & anti-reflect layers to re-add after etching
+    auto [extraLayers, extraMaterials] = extractTopLevelSets(*domain, 3);
 
     // SF6O2 etching model
     auto model = ps::SmartPointer<ps::SF6O2Etching<Scalar, D>>::New(
@@ -84,7 +81,9 @@ int main(int argc, char *argv[]) {
 
 
 
-  Scalar height = params.get("bulkHeight") + params.get("passivationHeight") + params.get("airHeight") + params.get("gridDelta");
+  Scalar solidHeight = params.get("bulkHeight") + params.get("passivationHeight") +
+                       params.get("antiReflectHeight1") + params.get("antiReflectHeight2");
+  Scalar height = solidHeight + params.get("airHeight") + params.get("gridDelta");
 
   auto levelSets = domain->getLevelSets();
   auto materialMap = domain->getMaterialMap();
@@ -107,17 +106,20 @@ int main(int argc, char *argv[]) {
   using namespace fidi;
   Vec<D, int> csGridSize = getGridSize(*cellSet);
   Rect<D, Scalar> lensBounds(getBounds(*cellSet).size());
-  lensBounds.min[D-1] = params.get("bulkHeight") + params.get("passivationHeight") + params.get("gridDelta");
-  lensBounds.max[D-1] = lensBounds.min[D-1] + params.get("airHeight");
+  lensBounds.min[D-1] = solidHeight;
+  lensBounds.max[D-1] = lensBounds.min[D-1] + params.get("airHeight") + params.get("gridDelta");
   setSphereMaterial(*cellSet->getScalarData("Material"), csGridSize, lensBounds,
-                    project(lensBounds.max / Scalar(2), D-1), height, int(ps::Material::PolySi), gridDelta);
+                    project(lensBounds.max / Scalar(2), D-1), height, gridDelta,
+                    int(lensMaterial), int(ps::Material::Air));
 
 
   fdtd::MaterialMap matMap;
-  matMap.emplace(int(ps::Material::Air),     fdtd::Material{1, 1});
-  matMap.emplace(int(ps::Material::Si),      fdtd::Material{params.get("siliconPermittivity"), 1});
-  matMap.emplace(int(ps::Material::SiN),     fdtd::Material{params.get("passivationPermittivity"), 1});
-  matMap.emplace(int(ps::Material::PolySi),  fdtd::Material{params.get("lensPermittivity"), 1});
+  matMap.emplace(int(ps::Material::Air),    fdtd::Material{1, 1});
+  matMap.emplace(int(ps::Material::Si),     fdtd::Material{params.get("siliconPermittivity"), 1});
+  matMap.emplace(int(ps::Material::SiN),    fdtd::Material{params.get("passivationPermittivity"), 1});
+  matMap.emplace(int(lensMaterial),         fdtd::Material{params.get("lensPermittivity"), 1});
+  matMap.emplace(int(antiReflectMaterial1), fdtd::Material{params.get("antiReflectPermittivity1"), 1});
+  matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 
 
   runFDTD(*cellSet, std::move(matMap));

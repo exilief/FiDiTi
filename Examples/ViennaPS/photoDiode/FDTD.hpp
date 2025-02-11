@@ -85,18 +85,19 @@ fidi::Rect<D, Scalar> getBounds(const viennacs::DenseCellSet<Scalar, D>& cellSet
 
 template <class Scalar, int D>
 void setSphereMaterial(std::vector<Scalar>& field, fidi::VecNi<D> fieldSize, fidi::Rect<D, Scalar> bounds,
-                       fidi::Vec<D, Scalar> center, Scalar radius, int material, Scalar grid_dx)
+                       fidi::Vec<D, Scalar> center, Scalar radius, Scalar grid_dx, int material, int oldMaterial)
 {
     fidi::RectNi<D> box(fidi::VecNi<D>(bounds.min / grid_dx + Scalar(0.5)),
                         fidi::VecNi<D>(bounds.max / grid_dx + Scalar(0.5)));
     auto idxStride = indexStride(fieldSize);
 
-    forEachCell(box, [&](fidi::VecNi<D> pos)
+    forEachCell(clamp(box, fidi::RectNi<D>(fieldSize)), [&](fidi::VecNi<D> pos)
     {
         fidi::Vec<D, Scalar> p(pos);
         p = p * grid_dx + grid_dx / 2;
-        if (len_sq(p - center) <= radius*radius)
-            field[dot(pos, idxStride)] = material;
+        auto& x = field[dot(pos, idxStride)];
+        if (len_sq(p - center) <= radius*radius && x == oldMaterial)
+            x = material;
     });
 }
 
@@ -144,8 +145,8 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     sim.addTfsfSource(1, -1);
     sim.addAbsorbingBoundary(2);
 
-    int numSteps = 180;
-    int frameInterval = 5;
+    int numSteps = 246;
+    int frameInterval = 6;
     for (int q = 0; q < numSteps; ++q)
     {
         sim.step();

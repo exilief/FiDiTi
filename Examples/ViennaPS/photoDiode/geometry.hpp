@@ -7,6 +7,10 @@
 
 namespace ps = viennaps;
 
+inline const ps::Material lensMaterial {21};  // PDMS
+inline const ps::Material antiReflectMaterial1 {22};
+inline const ps::Material antiReflectMaterial2 {23};
+
 template <class T, int D>
 class Builder
 {
@@ -123,8 +127,8 @@ class Builder
 template <class T, int D>
 auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
                   int numHoles, T holeWidth, T holeDepth,
-                  T passivationHeight, T maskHeight, T baseHeight,
-                  bool withMask = false)
+                  T passivationHeight, T antiReflectHeight1, T antiReflectHeight2,
+                  T maskHeight, T baseHeight, bool withMask = false)
 {
     auto domain = ps::SmartPointer<ps::Domain<T, D>>::New();
 
@@ -153,6 +157,8 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
     builder.cutHoles(roof, numHoles, holeWidth, bounds[0], bounds[1], roofBottom, roofHeight);
 
     auto passivation = builder.createPlane(bulkTop + passivationHeight);
+    auto antiReflect1 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight1);
+    auto antiReflect2 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight1 + antiReflectHeight2);
 
     domain->insertNextLevelSetAsMaterial(base, ps::Material::Si);
     if (!withMask)
@@ -162,6 +168,8 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
         domain->insertNextLevelSetAsMaterial(roof, ps::Material::Mask);
 
     domain->insertNextLevelSetAsMaterial(passivation, ps::Material::SiN, false);
+    domain->insertNextLevelSetAsMaterial(antiReflect1, antiReflectMaterial1, false);
+    domain->insertNextLevelSetAsMaterial(antiReflect2, antiReflectMaterial2, false);
 
     return domain;
 }
@@ -171,15 +179,14 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
 template <class Domain>
 auto extractTopLevelSets(Domain& domain, int num)
 {
-    auto& levelSets = domain->getLevelSets();
+    auto& levelSets = domain.getLevelSets();
     std::vector topLayers(levelSets.end() - num, levelSets.end());
     std::vector<ps::Material> topMaterials(num);
 
     for (int i = 0; i < num; ++i)
-    {
-        topMaterials[num - 1 - i] = domain->getMaterialMap()->getMaterialAtIdx(levelSets.size() - 1 - i);
-        domain->removeTopLevelSet();
-    }
+        topMaterials[num - 1 - i] = ps::Material{domain.getMaterialMap()->getMaterialMap()->getMaterialId(levelSets.size() - 1 - i)};
+    for (int i = 0; i < num; ++i)
+        domain.removeTopLevelSet();
 
     return std::pair{topLayers, topMaterials};
 }
