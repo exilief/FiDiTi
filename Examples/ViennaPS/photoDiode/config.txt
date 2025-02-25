@@ -16,7 +16,9 @@ antiReflectHeight1 = 0.01
 antiReflectHeight2 = 0.01
 airHeight = 0.06  # Extra space for adding a lens on top in postprocessing
 
+
 # Process parameters
+withEtching = 0    # Enable/Disable etching process (create holes manually instead)
 processTime = 0.07 # seconds 
 
 # Flux values in 1e16 / cm²
@@ -41,3 +43,7 @@ antiReflectPermittivity1 = 2.6
 antiReflectPermittivity2 = 3.8
 passivationPermittivity = 4.0  # SiN
 siliconPermittivity = 15.813
+
+# FDTD simulation
+fdtdSteps = 246
+fdtdOutputInterval = 6

@@ -122,7 +122,7 @@ auto print(const fidi::FDTD<D>& sim, viennacs::DenseCellSet<Scalar, D>& cellSet,
 }
 
 template <class Scalar, int D>
-void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap)
+void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap, int numSteps)
 {
     using namespace fidi;
 
@@ -145,7 +145,6 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     sim.addTfsfSource(1, -1);
     sim.addAbsorbingBoundary(2);
 
-    int numSteps = 246;
     int frameInterval = 6;
     for (int q = 0; q < numSteps; ++q)
     {

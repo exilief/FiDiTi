@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  bool withEtching = false;
+  bool withEtching = params.get("withEtching");
 
   // Geometry setup
   auto domain = makeGeometry<Scalar, D>(
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
   matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 
 
-  runFDTD(*cellSet, std::move(matMap));
+  runFDTD(*cellSet, std::move(matMap), params.get("fdtdSteps"));
   std::cout << "FDTD done\n";
 
   cellSet->writeVTU("final.vtu");

@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -428,12 +429,47 @@ class FDTD
     }
 
 
+    // Sum over the energy density in the grid cells
+    // To get the actual energy, it must be multiplied by the cell volume dx^D
+    // and additionally by appropriate lengths in the remaining directions if D < 3
+    Scalar fieldEnergy(RectNi<D> bounds, std::optional<int> material = {}) const
+    {
+        Scalar E = 0;
+        forEachCell(clamp(bounds, Rect(N)), [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos);
+            if (!material || matIds[i] == *material)
+                for (int k = 0; k < 3; ++k)
+                {
+                    if (!A[k].empty())
+                    {
+                        Scalar cA = mats.at(matIds[i]).rA * refMat.mA;
+                        E += A[k][i] * A[k][i] * cA / 2;
+                    }
+                    if (!B[k].empty())
+                    {
+                        Scalar cB = mats.at(matIds[i]).rB * refMat.mB;
+                        E += B[k][i] * B[k][i] * cB / 2;
+                    }
+                }
+        });
+
+        return E;
+    }
+
+    Scalar fieldEnergy(std::optional<int> material = {}) const
+    {
+        return fieldEnergy({N}, material);
+    }
+
+
  private:
     void updateField(Field& A, const Field& B,
                      const std::vector<Scalar>& cA, const std::vector<Scalar>& cB, bool shift)
     {
         RepeatArray<Scalar> null(0);
 
+        //#pragma omp parallel for
         for (int i = 0; i < 3; ++i)
         {
             int j = (i+1) % 3;
@@ -789,6 +825,7 @@ void FDTD<D>::applyTfsfSource(TFSF<D>& src, Scalar q)
 
 using fdtd::FDTD;
 
+
 } // namespace fidi
 
 
@@ -820,13 +857,9 @@ using fdtd::FDTD;
  *
  * To Do:
  *
+ * Material interpolation
+ *
  * Move sign of update-equations into coefficient cBA? -> Must add sign in ABC (cAB*cBA) ...
- *
- * Automate update equations (dA/dt = rot(B)):
- * - update2D(A[3], B[3], axis, cAA, cAB) -> Automatically selects field components, A[axis], B...
- * - update1D(A[3], B[3], axisA, axisB, cAA, cAB) ?
- *
- * update1D -> update2D with zero placeholder for unused B-comp
  *
  * template <class Scalar>
  *
@@ -838,12 +871,8 @@ using fdtd::FDTD;
  *
  *
  *
- * Optimization:
+ * Parallelize:
  *
- * Store cell index offset for all grid directions (idxStride? N_offset?), avoid recomputing for each cell
- * (Use in to_idx(), and optimized advanceIndex(axis, d), or just add c + d*N_offset[i])
- * (advanceIndex: assert(idx_new >= 0 && idx_new < Rect{0,N}.volume()))
- *
- * Parallelize: Specialized FDTD::forEachCell() with OpenMP
- * Alternative: Do orthogonal 3D plane updates with 3 threads
+ * Specialized par::forEachCell() with OpenMP (not working efficiently currently)
+ * Alternative: Do orthogonal 3D plane updates with 3 threads -> Uncomment #pragma in updateField()
 **/
