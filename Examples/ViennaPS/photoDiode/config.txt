@@ -45,5 +45,5 @@ passivationPermittivity = 4.0  # SiN
 siliconPermittivity = 15.813
 
 # FDTD simulation
-fdtdSteps = 246
+fdtdSteps = 500  # 246
 fdtdOutputInterval = 6

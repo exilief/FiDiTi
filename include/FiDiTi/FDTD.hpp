@@ -434,7 +434,7 @@ class FDTD
     // and additionally by appropriate lengths in the remaining directions if D < 3
     Scalar fieldEnergy(RectNi<D> bounds, std::optional<int> material = {}) const
     {
-        Scalar E = 0;
+        Scalar E_A = 0, E_B = 0;
         forEachCell(clamp(bounds, Rect(N)), [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
@@ -444,17 +444,17 @@ class FDTD
                     if (!A[k].empty())
                     {
                         Scalar cA = mats.at(matIds[i]).rA * refMat.mA;
-                        E += A[k][i] * A[k][i] * cA / 2;
+                        E_A += A[k][i] * A[k][i] * cA / 2;
                     }
                     if (!B[k].empty())
                     {
                         Scalar cB = mats.at(matIds[i]).rB * refMat.mB;
-                        E += B[k][i] * B[k][i] * cB / 2;
+                        E_B += B[k][i] * B[k][i] * cB / 2;
                     }
                 }
         });
 
-        return E;
+        return E_A + E_B;
     }
 
     Scalar fieldEnergy(std::optional<int> material = {}) const

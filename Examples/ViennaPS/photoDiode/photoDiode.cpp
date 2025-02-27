@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
 
 
 
+  Scalar diodeHeight = params.get("bulkHeight") - params.get("holeDepth");
   Scalar solidHeight = params.get("bulkHeight") + params.get("passivationHeight") +
                        params.get("antiReflectHeight1") + params.get("antiReflectHeight2");
   Scalar height = solidHeight + params.get("airHeight") + params.get("gridDelta");
@@ -122,7 +123,7 @@ int main(int argc, char *argv[]) {
   matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 
 
-  runFDTD(*cellSet, std::move(matMap), params.get("fdtdSteps"));
+  runFDTD(*cellSet, std::move(matMap), params.get("fdtdSteps"), diodeHeight);
   std::cout << "FDTD done\n";
 
   cellSet->writeVTU("final.vtu");

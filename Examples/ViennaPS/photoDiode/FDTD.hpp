@@ -102,7 +102,7 @@ void setSphereMaterial(std::vector<Scalar>& field, fidi::VecNi<D> fieldSize, fid
 }
 
 template <class Scalar, int D>
-auto print(const fidi::FDTD<D>& sim, viennacs::DenseCellSet<Scalar, D>& cellSet,
+void print(const fidi::FDTD<D>& sim, viennacs::DenseCellSet<Scalar, D>& cellSet,
            fidi::Rect<D, int> innerBounds, int step)
 {
     fidi::Vec<D, int> N = sim.gridSize();
@@ -122,7 +122,28 @@ auto print(const fidi::FDTD<D>& sim, viennacs::DenseCellSet<Scalar, D>& cellSet,
 }
 
 template <class Scalar, int D>
-void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap, int numSteps)
+void printEnergy(const fidi::FDTD<D>& sim, int diodeHeight, Scalar dx, Scalar cellDepth, int step)
+{
+    Scalar cellVolume = 1;
+    for (int i = 0; i < 3; i++)
+        cellVolume *= (i < D) ? dx : cellDepth;
+
+    // Region above diode (incoming wave)
+    fidi::Rect rect(sim.gridSize());
+    rect.min[D-1] = diodeHeight;
+
+    std::cout << "FDTD energy (" << step << "): " << sim.fieldEnergy(rect) * cellVolume << " (top), ";
+
+    // Diode region (transmitted wave)
+    rect = fidi::Rect(sim.gridSize());
+    rect.max[D-1] = diodeHeight;
+
+    std::cout << sim.fieldEnergy(rect) * cellVolume << " (diode)\n";
+}
+
+template <class Scalar, int D>
+void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap, int numSteps,
+             Scalar diodeHeight)
 {
     using namespace fidi;
 
@@ -151,6 +172,10 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
         sim.step();
 
         if (!(q % frameInterval))
+        {
             print(sim, cellSet, innerBounds, q+1);
+            // 2D: Cell depth = diode width (square shape in 3D)
+            printEnergy(sim, diodeHeight / dx, dx, csGridSize[0] * dx, q+1);
+        }
     }
 }
