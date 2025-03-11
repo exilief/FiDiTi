@@ -80,15 +80,6 @@ Vec<D, int> signum(const Vec<D, T>& v)
 
 
 template <int D, class T>
-T dot(const Vec<D, T>& v1, const Vec<D, T>& v2)
-{
-    T sum = 0;
-    for (int i = 0; i < D; ++i)
-        sum += v1[i] * v2[i];
-    return sum;
-}
-
-template <int D, class T>
 T len_sq(const Vec<D, T>& v)
 {
     return dot(v, v);
@@ -100,6 +91,28 @@ Vec<D, T> project(Vec<D, T> v, int i)
     assert(i < D);
     v[i] = 0;
     return v;
+}
+
+template <int D, class T>
+T dot(const Vec<D, T>& v1, const Vec<D, T>& v2)
+{
+    T sum = 0;
+    for (int i = 0; i < D; ++i)
+        sum += v1[i] * v2[i];
+    return sum;
+}
+
+template <class T>
+Vec<3, T> cross(const Vec<3, T>& u, const Vec<3, T>& v)
+{
+    Vec<3, T> w;
+    for (int i = 0; i < 3; ++i)
+    {
+        int j = (i+1) % 3;
+        int k = (i+2) % 3;
+        w[i] += u[j] * v[k] - u[k] * v[j];
+    }
+    return w;
 }
 
 

@@ -185,6 +185,17 @@ struct Field
     {
         return const_cast<std::vector<Scalar>&>(std::as_const(*this)[i]);
     }
+
+    Vec3<Scalar> vec(int idx) const
+    {
+        Vec3<Scalar> v;
+        for (int i = 0; i < 3; ++i)
+        {
+            const auto& a = (*this)[i];
+            v[i] = a.empty() ? Scalar(0) : a[idx];
+        }
+        return v;
+    }
 };
 
 
@@ -460,6 +471,34 @@ class FDTD
     Scalar fieldEnergy(std::optional<int> material = {}) const
     {
         return fieldEnergy({N}, material);
+    }
+
+    // Power through a plane surface (Poynting vector integrated) (Plane axis index < D)
+    // To get the actual surface power, it must be multiplied by the cell face area dx^(D-1)
+    // and additionally by appropriate lengths in the remaining directions if D < 3
+    Scalar surfacePower(RectNi<D> plane, int axis) const
+    {
+        assert(axis < D && plane.size()[axis] == 1);
+
+        Scalar P = 0;
+        VecNi<D> n = basisVec<D,int>(axis);
+        forEachCell(clamp(plane, Rect(N)), [&](VecNi<D> pos)
+        {
+            int i = to_idx(pos);
+            P += dot(n, surfacePower(i));
+        });
+
+        return P;
+    }
+
+    // Surface power density (Poynting vector) at a cell (by array index)
+    Vec<D, Scalar> surfacePower(int i) const
+    {
+        // TODO: Interpolate components
+        return resize<D>(cross(A.vec(i), B.vec(i)));
+
+        // 1/2 for average power? For sine wave of 1 frequency?
+        //return resize<D>(cross(A.vec(i), B.vec(i))) / Scalar(2);
     }
 
 
