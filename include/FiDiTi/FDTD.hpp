@@ -481,7 +481,7 @@ class FDTD
         assert(axis < D && plane.size()[axis] == 1);
 
         Scalar P = 0;
-        VecNi<D> n = basisVec<D,int>(axis);
+        auto n = basisVec<D, Scalar>(axis);
         forEachCell(clamp(plane, Rect(N)), [&](VecNi<D> pos)
         {
             int i = to_idx(pos);
