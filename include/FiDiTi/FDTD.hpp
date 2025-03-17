@@ -47,25 +47,28 @@ namespace Std
 namespace fn
 {
     template <class Scalar>
-    Scalar gauss(Scalar x, Scalar d = 30., Scalar w = 10.)  // Gauss curve
+    Scalar gauss(Scalar t, Scalar w = 20, Scalar d = 30)
     {
-        Scalar a = (x - d) / w;
+        Scalar a = (t - d) / (w/2);
         return std::exp(-a * a);
     }
 
     // Ricker wavelet (2nd deriv of Gauss)
+    // w: Pulse width = Period T = 1/f for the peak frequency f
+    // d: Delay (Choose d >= w for a smooth start)
     template <class Scalar>
-    Scalar ricker(Scalar t, Scalar d = 30., Scalar w = 16.)
+    Scalar ricker(Scalar t, Scalar w = 20, Scalar d = 30)
     {
         Scalar P = 1 / w;  // Peak frequency
         Scalar a = constants::pi * P * (t - d);
         return (1 - 2*a*a) * std::exp(-a*a);
     }
 
+    // Pulse signal: Use the number of time steps as parameters, delay = t_delay / dt, ...
     template <class Scalar>
-    auto makePulse(Scalar delay, Scalar width)
+    auto makePulse(Scalar width = 20, Scalar delay = 30)
     {
-        return [delay, width](Scalar t) { return ricker(t, delay, width); };
+        return [width, delay](Scalar t) { return ricker(t, width, delay); };
     }
 }
 
@@ -206,7 +209,7 @@ struct Source
     Scalar duration = 0;  // Replace source with a regular node after this time (0 = no expiry)
     // Field component ... (using Az for now)
 
-    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(38, 26);
+    std::function<Scalar(Scalar)> f = fn::makePulse<Scalar>(30, 45);
 };
 
 // Material must not change in normal-direction at the boundary (order 1: 2 cells; order 2: 3 cells)
@@ -373,19 +376,23 @@ class FDTD
         }
     }
 
-    void addHardSource(VecNi<D> pos)
+    void addHardSource(VecNi<D> pos, Source src = {})
     {
-        hardSrcsA.push_back(Source{to_idx(pos)});
+        src.cell = to_idx(pos);
+        hardSrcsA.push_back(std::move(src));
     }
 
-    void addPlaneSource(Boundary b)  // TODO: LineSource
+    void addPlaneSource(Boundary b, const Source& src = {})  // TODO: LineSource
     {
-        forEachIndex(boundaryRect(b), N, [&](int index) { addHardSource(to_vec(index)); });
+        forEachIndex(boundaryRect(b), N, [&](int index)
+        {
+            addHardSource(to_vec(index), src);
+        });
     }
 
-    void addTfsfSource(int dirAxis = 0, int dirSign = 1)
+    void addTfsfSource(int dirAxis = 0, int dirSign = 1, Source src = {})
     {
-        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c, dirAxis, dirSign);
+        tfsfSrcs.emplace_back(Rect{VecNi<D>(5), N-5}, S_c, dirAxis, dirSign, std::move(src));
     }
 
     std::vector<int> boundaryCells(Boundary b, int width = 1, int offsetMin = 0, int offsetMax = 0) const
@@ -439,6 +446,12 @@ class FDTD
         return v;
     }
 
+
+    // dt/dx
+    Scalar timeSpaceStepRatio() const
+    {
+        return S_c / constants::c;
+    }
 
     // Sum over the energy density in the grid cells
     // To get the actual energy, it must be multiplied by the cell volume dx^D
@@ -759,13 +772,13 @@ struct TFSF
     int d_src = 1;  // Distance between source (1D simulation) and TF/SF interface
 
 
-    TFSF(RectNi<D> tfRegion, Scalar S_c, int dirAxis = 0, int dirSign = 1)
+    TFSF(RectNi<D> tfRegion, Scalar S_c, int dirAxis = 0, int dirSign = 1, Source src = {})
       : bounds(tfRegion),
         axis(dirAxis),
         sign(dirSign),
         sim1d(tfRegion.size()[axis] + 20, S_c)
     {
-        sim1d.addHardSource(0);
+        sim1d.addHardSource(0, std::move(src));
         sim1d.addAbsorbingBoundary(Boundary::XMax, 2);  // TODO: Use impedance-matched lossy region instead
         sim1d.ensureInitialState();
     }
