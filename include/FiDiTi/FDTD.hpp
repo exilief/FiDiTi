@@ -108,10 +108,10 @@ int toAxis(Boundary b)
 
 struct Material
 {
-    Scalar rA = 1;  // epsilon_r
-    Scalar rB = 1;  // mu_r
-    Scalar sA = 0;  // sigma_e (el. conductivity)
-    Scalar sB = 0;  // sigma_m (magn. conductivity)
+    Scalar rA = 1;     // epsilon_r
+    Scalar rB = 1;     // mu_r
+    Scalar lossA = 0;  // Electric loss factor due to el. conductivity -> See calculateLossFactor()
+    Scalar lossB = 0;  // Magnetic loss factor due to magn. conductivity
 };
 
 using MaterialMap = std::unordered_map<int, Material>;
@@ -120,6 +120,16 @@ struct ReferenceMaterial  // Vacuum (Air)
 {
     Scalar mA = constants::epsilon0;
     Scalar mB = constants::mu0;
+
+    Scalar speed() const
+    {
+        return 1.0 / std::sqrt(mA * mB);
+    }
+
+    Scalar impedance() const
+    {
+        return std::sqrt(mB / mA);
+    }
 };
 
 struct UpdateCoeffs  // Pre-compute at start of simulation, internal only
@@ -129,14 +139,14 @@ struct UpdateCoeffs  // Pre-compute at start of simulation, internal only
     Scalar cAB = 0;
     Scalar cBA = 0;
 
-    UpdateCoeffs(Material m, ReferenceMaterial m0, Scalar h, Scalar k)
+    UpdateCoeffs(Material m, ReferenceMaterial m0, Scalar S_c)
     {
-        Scalar lossA = m.sA * k / (2 * m.rA * m0.mA);
-        Scalar lossB = m.sB * k / (2 * m.rB * m0.mB);
+        Scalar lossA = m.lossA * S_c;
+        Scalar lossB = m.lossB * S_c;
         cAA = (1 - lossA) / (1 + lossA);
         cBB = (1 - lossB) / (1 + lossB);
-        cAB = k / (h * m.rA * m0.mA) / (1 + lossA);
-        cBA = k / (h * m.rB * m0.mB) / (1 + lossB);
+        cAB = S_c * m0.impedance() / m.rA / (1 + lossA);
+        cBA = S_c / m0.impedance() / m.rB / (1 + lossB);
     }
 
     UpdateCoeffs() = default;
@@ -230,6 +240,36 @@ template <int D>
 struct TFSF;  // Contains FDTD<1>, requires class definition -> See below
 
 
+
+// Loss due to electric or magnetic conductivity in a material, independent of the step sizes dx and dt
+// N_L: Skin depth = N_L * dx at a particular wavelength (decay to 1/e)
+// N_lambda: Wavelength = N_lambda * dx (in vacuum)
+template <class Scalar>
+Scalar calculateLossFactor(Scalar N_L, Scalar N_lambda, Material m)
+{
+    using constants::pi;
+    auto sq = [] (auto x) { return x*x; };
+    return pi * N_lambda * std::sqrt(sq(1 + sq(N_lambda)/(2*sq(pi) * N_L * m.rA * m.rB)) - 1);
+}
+
+// Alternative formula, using electric conductivity (sigma) and the time & space steps dt and dx
+template <class Scalar>
+Scalar calculateElectricLossFactor(Scalar sigma, Scalar dt, Scalar dx, Material m, ReferenceMaterial m0 = {})
+{
+    Scalar S_c = dt / dx * m0.speed();
+    return sigma * dt / (2 * m.rA * m0.mA) / S_c;
+}
+
+// Alternative formula, using magnetic conductivity (sigma) and the time & space steps dt and dx
+template <class Scalar>
+Scalar calculateMagneticLossFactor(Scalar sigma, Scalar dt, Scalar dx, Material m, ReferenceMaterial m0 = {})
+{
+    Scalar S_c = dt / dx * m0.speed();
+    return sigma * dt / (2 * m.rB * m0.mB) / S_c;
+}
+
+
+
 template <int D>
 class FDTD
 {
@@ -244,8 +284,6 @@ class FDTD
     ReferenceMaterial refMat;
 
     Scalar S_c = 1 / std::sqrt(D);  // Stability constant (Courant number) = c0*dt/dx
-    Scalar dx = 1;
-    Scalar dt = 0;  // S_c * dx / c0
 
     std::vector<Source> hardSrcsA, hardSrcsB;
     std::vector<Source> additiveSrcsA, additiveSrcsB;
@@ -268,8 +306,7 @@ class FDTD
       : N(gridSize),
         idxStride(indexStride(N)),
         A(gridSize, false), B(gridSize, true),
-        S_c(stabilityConstant),
-        dt(S_c * dx / constants::c)
+        S_c(stabilityConstant)
     {
         if (S_c > 1 / std::sqrt(D))
             std::cout << "Warning: unstable Courant number" << std::endl;
@@ -450,7 +487,7 @@ class FDTD
     // dt/dx
     Scalar timeSpaceStepRatio() const
     {
-        return S_c / constants::c;
+        return S_c / refMat.speed();  // S_c / constants::c;
     }
 
     // Sum over the energy density in the grid cells
@@ -510,7 +547,7 @@ class FDTD
         // TODO: Interpolate components
         return resize<D>(cross(A.vec(i), B.vec(i)));
 
-        // 1/2 for average power? For sine wave of 1 frequency?
+        // Harmonic wave (1 frequency): 1/2 for average power?
         //return resize<D>(cross(A.vec(i), B.vec(i))) / Scalar(2);
     }
 
@@ -702,7 +739,7 @@ class FDTD
         for (int i = 0; i < Rect(N).volume(); ++i)
         {
             // TODO: Interpolate materials
-            UpdateCoeffs uc(mats[matIds[i]], refMat, dx, dt);
+            UpdateCoeffs uc(mats[matIds[i]], refMat, S_c);
             cAA[i] = uc.cAA;
             cAB[i] = uc.cAB;
             cBB[i] = uc.cBB;
