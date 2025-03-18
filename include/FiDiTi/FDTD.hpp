@@ -74,18 +74,25 @@ namespace fn
 
 
 // Make the field domain smaller or larger if newBounds exceeds Rect(fieldSize)
-template <int D, class T>
-std::vector<T> resizeField(const std::vector<T>& field, VecNi<D> fieldSize, RectNi<D> newBounds)
+// (Range at outIt must have size newBounds.volume())
+template <int D, class RandIt1, class RandIt2>
+void resizeField(RandIt1 field, VecNi<D> fieldSize, RandIt2 outIt, RectNi<D> newBounds)
 {
-    std::vector<T> data(newBounds.volume());
-
     Vec stride1 = indexStride(newBounds.size());
     Vec stride2 = indexStride(fieldSize);
 
     forEachCell(clamp(newBounds, Rect(fieldSize)), [&] (VecNi<D> p)
     {
-        data[dot(p - newBounds.min, stride1)] = field[dot(p, stride2)];
+        outIt[dot(p - newBounds.min, stride1)] = field[dot(p, stride2)];
     });
+}
+
+template <int D, class T>
+std::vector<T> resizeField(const std::vector<T>& field, VecNi<D> fieldSize, RectNi<D> newBounds)
+{
+    std::vector<T> data(newBounds.volume());
+
+    resizeField(field.begin(), fieldSize, data.begin(), newBounds);
 
     return data;
 }
@@ -277,7 +284,7 @@ class FDTD
     VecNi<D> idxStride; // {1, N.x, N.x*N.y}
 
     Field A, B;
-    std::vector<Scalar> cAA, cAB, cBB, cBA;  // Interpolate: cAA[3], cAB[3], cBB[3], cBA[3]
+    std::vector<Scalar> cAA, cAB, cBB, cBA;  // Interpolate: Field cAA, cAB, cBB, cBA
 
     std::vector<int> matIds;
     MaterialMap mats;
@@ -317,6 +324,8 @@ class FDTD
         cAB.resize(numCells);
         cBB.resize(numCells);
         cBA.resize(numCells);
+        //cAA = cAB = A;
+        //cBB = cBA = B;
 
         setMaterials({{0, Material()}});
     }
