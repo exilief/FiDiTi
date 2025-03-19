@@ -18,8 +18,8 @@ airHeight = 0.06  # Extra space for adding a lens on top in postprocessing
 
 
 # Process parameters
-withEtching = 0    # Enable/Disable etching process (create holes manually instead)
-processTime = 0.07 # seconds 
+withEtching = 0     # Enable/Disable etching process (create holes manually instead) (0 or 1)
+processTime = 0.07  # seconds
 
 # Flux values in 1e16 / cm²
 ionFlux = 1.
@@ -38,12 +38,17 @@ raysPerPoint = 500
 
 
 # Electric material parameters
-lensPermittivity = 1.96  # PDMS
+lensPermittivity = 1.96         # PDMS
 antiReflectPermittivity1 = 2.6
 antiReflectPermittivity2 = 3.8
-passivationPermittivity = 4.0  # SiN
+passivationPermittivity = 4.0   # SiN
 siliconPermittivity = 15.813
 
 # FDTD simulation
-fdtdSteps = 500  # 246
+fdtdWavelength = 500         # nm
+fdtdCellsPerWavelength = 40  # lambda / dx
+#fdtdTime = 4.2               # Simulation time in fs
+#fdtdOutputInterval = 0.06    # fs
+
+fdtdSteps = 500
 fdtdOutputInterval = 6

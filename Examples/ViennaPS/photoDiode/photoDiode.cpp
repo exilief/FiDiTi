@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
   Scalar dxScale = 0.5;
   Scalar gridDelta = dxScale * params.get("gridDelta");
 
-  if (dxScale != 1.0) levelSets = changeGridSpacing(levelSets, dxScale);
+  if (dxScale != 1.0) levelSets = changeGridSpacing(levelSets, gridDelta);
 
   auto cellSet = cs::SmartPointer<cs::DenseCellSet<Scalar, D>>::New();
   cellSet->setCellSetPosition(/*isAboveSurface*/ true);

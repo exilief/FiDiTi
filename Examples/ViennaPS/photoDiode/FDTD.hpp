@@ -9,7 +9,7 @@
 #include <cmath>
 
 template <class Scalar, int D>
-auto changeGridSpacing(viennals::SmartPointer<viennals::Domain<Scalar, D>> levelSet, Scalar multiplier)
+auto changeGridSpacing(viennals::SmartPointer<viennals::Domain<Scalar, D>> levelSet, Scalar newGridDelta)
 {
     auto mesh = viennals::SmartPointer<viennals::Mesh<Scalar>>::New();
     viennals::ToSurfaceMesh<Scalar, D>(levelSet, mesh).apply();
@@ -23,10 +23,10 @@ auto changeGridSpacing(viennals::SmartPointer<viennals::Domain<Scalar, D>> level
         if (bcs[i] == hrleGrid<D>::PERIODIC_BOUNDARY)
             min[i]++;
 
-        min[i] = std::floor(min[i] / multiplier);
-        max[i] = std::ceil(max[i] / multiplier);
+        min[i] = std::floor(min[i] * grid.getGridDelta() / newGridDelta);
+        max[i] = std::ceil(max[i] * grid.getGridDelta() / newGridDelta);
     }
-    hrleGrid<D> newGrid(&min[0], &max[0], grid.getGridDelta() * multiplier, &bcs[0]);
+    hrleGrid<D> newGrid(&min[0], &max[0], newGridDelta, &bcs[0]);
 
     auto newLevelSet = decltype(levelSet)::New(newGrid);
     viennals::FromSurfaceMesh<Scalar, D>(newLevelSet, mesh).apply();
@@ -35,11 +35,11 @@ auto changeGridSpacing(viennals::SmartPointer<viennals::Domain<Scalar, D>> level
 }
 
 template <class Scalar, int D>
-auto changeGridSpacing(const std::vector<viennals::SmartPointer<viennals::Domain<Scalar, D>>>& levelSets, Scalar multiplier)
+auto changeGridSpacing(const std::vector<viennals::SmartPointer<viennals::Domain<Scalar, D>>>& levelSets, Scalar newGridDelta)
 {
     std::decay_t<decltype(levelSets)> newLevelSets;
     for (const auto& ls : levelSets)
-        newLevelSets.push_back(changeGridSpacing(ls, multiplier));
+        newLevelSets.push_back(changeGridSpacing(ls, newGridDelta));
     return newLevelSets;
 }
 
