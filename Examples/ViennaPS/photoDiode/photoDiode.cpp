@@ -122,6 +122,10 @@ int main(int argc, char *argv[]) {
   matMap.emplace(int(antiReflectMaterial1), fdtd::Material{params.get("antiReflectPermittivity1"), 1});
   matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 
+  if (!params.get("fdtdWithMaterial"))
+    for (auto& pair : matMap)
+      pair.second.rA = pair.second.rB = 1;
+
 
   // Femtoseconds -> Microseconds
   auto fdtdOutputInterval = params.get("fdtdOutputInterval") / 1e9;

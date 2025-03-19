@@ -164,7 +164,6 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
 {
     using namespace fidi;
 
-    auto numCells = cellSet.getNumberOfCells();
     auto dx = cellSet.getGridDelta();
 
     Vec<D, int> csGridSize = getGridSize(cellSet);
@@ -178,18 +177,17 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     Scalar energy = 0;
 
     Scalar dt = dx * sim.timeSpaceStepRatio();
-    Scalar T = wavelength / constants::c / dt;
-    Scalar delay = T * 1.5;
+    Scalar pulseWidth = wavelength / constants::c / dt;
+    Scalar delay = pulseWidth * 1.3;
 
     fdtd::Source src;
-    src.f = fn::makePulse(T, delay);
+    src.f = fn::makePulse(pulseWidth, delay);
+
+    sim.addTfsfSource(1, -1, src);
+    sim.addAbsorbingBoundary(2);
 
     sim.setMaterials(std::move(matMap));
     sim.setCellMaterials(extractMaterials(cellSet, N, innerBounds));
-
-    //sim.addHardSource(N/2);
-    sim.addTfsfSource(1, -1, src);
-    sim.addAbsorbingBoundary(2);
 
     int numSteps = std::ceil(time / dt);
     int frameInterval = std::max<int>(1, std::floor(numSteps * outputInterval / time));
@@ -198,14 +196,15 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     {
         sim.step();
 
+        // 2D: Cell depth = diode width (square shape in 3D)
         energy += getEnergyFlow(sim, diodeHeight / dx, dx, csGridSize[0] * dx); // * dt;
 
         if (!(q % frameInterval))
         {
-            print(sim, cellSet, innerBounds, q+1);
-            // 2D: Cell depth = diode width (square shape in 3D)
-            printEnergy(sim, diodeHeight / dx, dx, csGridSize[0] * dx, q+1);
+            print(sim, cellSet, innerBounds, q / frameInterval + 1);
+            //printEnergy(sim, diodeHeight / dx, dx, csGridSize[0] * dx, q+1);
         }
     }
+    std::cout << "FDTD output interval: " << frameInterval * dt * 1e9 << " fs\n";
     std::cout << "Energy flow: " << energy << '\n';
 }
