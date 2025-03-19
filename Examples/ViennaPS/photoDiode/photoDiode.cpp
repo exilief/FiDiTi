@@ -89,10 +89,10 @@ int main(int argc, char *argv[]) {
   auto levelSets = domain->getLevelSets();
   auto materialMap = domain->getMaterialMap();
 
-  Scalar dxScale = 0.5;
-  Scalar gridDelta = dxScale * params.get("gridDelta");
+  Scalar gridDelta = std::min(params.get("gridDelta"), params.get("fdtdWavelength") / params.get("fdtdCellsPerWavelength"));
 
-  if (dxScale != 1.0) levelSets = changeGridSpacing(levelSets, gridDelta);
+  if (gridDelta < params.get("gridDelta"))
+    levelSets = changeGridSpacing(levelSets, gridDelta);
 
   auto cellSet = cs::SmartPointer<cs::DenseCellSet<Scalar, D>>::New();
   cellSet->setCellSetPosition(/*isAboveSurface*/ true);
@@ -123,7 +123,11 @@ int main(int argc, char *argv[]) {
   matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 
 
-  runFDTD(*cellSet, std::move(matMap), params.get("fdtdSteps"), diodeHeight);
+  // Femtoseconds -> Microseconds
+  auto fdtdOutputInterval = params.get("fdtdOutputInterval") / 1e9;
+  auto fdtdTime = params.get("fdtdTime") / 1e9;
+
+  runFDTD(*cellSet, std::move(matMap), fdtdTime, fdtdOutputInterval, params.get("fdtdWavelength"), diodeHeight);
   std::cout << "FDTD done\n";
 
   cellSet->writeVTU("final.vtu");

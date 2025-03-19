@@ -159,8 +159,8 @@ Scalar getEnergyFlow(const fidi::FDTD<D>& sim, int diodeHeight, Scalar dx, Scala
 }
 
 template <class Scalar, int D>
-void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap, int numSteps,
-             Scalar diodeHeight)
+void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap matMap, Scalar time, Scalar outputInterval,
+             Scalar wavelength, Scalar diodeHeight)
 {
     using namespace fidi;
 
@@ -177,14 +177,23 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
     FDTD<D> sim(N);
     Scalar energy = 0;
 
+    Scalar dt = dx * sim.timeSpaceStepRatio();
+    Scalar T = wavelength / constants::c / dt;
+    Scalar delay = T * 1.5;
+
+    fdtd::Source src;
+    src.f = fn::makePulse(T, delay);
+
     sim.setMaterials(std::move(matMap));
     sim.setCellMaterials(extractMaterials(cellSet, N, innerBounds));
 
     //sim.addHardSource(N/2);
-    sim.addTfsfSource(1, -1);
+    sim.addTfsfSource(1, -1, src);
     sim.addAbsorbingBoundary(2);
 
-    int frameInterval = 6;
+    int numSteps = std::ceil(time / dt);
+    int frameInterval = std::max<int>(1, std::floor(numSteps * outputInterval / time));
+
     for (int q = 0; q < numSteps; ++q)
     {
         sim.step();

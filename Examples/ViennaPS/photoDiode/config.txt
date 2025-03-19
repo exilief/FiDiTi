@@ -45,10 +45,10 @@ passivationPermittivity = 4.0   # SiN
 siliconPermittivity = 15.813
 
 # FDTD simulation
-fdtdWavelength = 500         # nm
+fdtdWavelength = 0.45        # um
 fdtdCellsPerWavelength = 40  # lambda / dx
-#fdtdTime = 4.2               # Simulation time in fs
-#fdtdOutputInterval = 0.06    # fs
+fdtdTime = 5.5               # Simulation time in fs
+fdtdOutputInterval = 0.06    # fs
 
-fdtdSteps = 500
-fdtdOutputInterval = 6
+#fdtdSteps = 500
+#fdtdOutputInterval = 6
