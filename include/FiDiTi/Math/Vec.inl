@@ -136,8 +136,8 @@ Vec<3, T> cross(const Vec<3, T>& u, const Vec<3, T>& v)
             left[i] op_eq right[i];                                             \
         return left;                                                            \
     }                                                                           \
-    template <int N, class T>                                                   \
-    constexpr Vec<N,T>& operator op_eq(Vec<N,T>& left, T right)                 \
+    template <int N, class T, class U>                                          \
+    constexpr Vec<N,T>& operator op_eq(Vec<N,T>& left, U right)                 \
     {                                                                           \
         for (int i=0; i < N; ++i)                                               \
             left[i] op_eq right;                                                \
@@ -149,13 +149,13 @@ Vec<3, T> cross(const Vec<3, T>& u, const Vec<3, T>& v)
     {                                                                       \
         return left op_eq right;                                            \
     }                                                                       \
-    template <int N, class T>                                               \
-    constexpr Vec<N,T> operator op(Vec<N,T> left, T right)                  \
+    template <int N, class T, class U>                                      \
+    constexpr Vec<N,T> operator op(Vec<N,T> left, U right)                  \
     {                                                                       \
         return left op_eq right;                                            \
     }                                                                       \
-    template <int N, class T>                                               \
-    constexpr Vec<N,T> operator op(T left, Vec<N,T> right)                  \
+    template <int N, class T, class U>                                      \
+    constexpr Vec<N,T> operator op(U left, Vec<N,T> right)                  \
     {                                                                       \
         for (int i=0; i < N; ++i)                                           \
             right[i] = left op right[i];                                    \

@@ -86,16 +86,16 @@ Vec<N,T> operator +(const Vec<N,T>& right);
 Vec<N,T>& operator +=(Vec<N,T>& left, const Vec<N,T>& right);
 
 // Vector op= Scalar
-Vec<N,T>& operator +=(Vec<N,T>& left, T right);
+Vec<N,T>& operator +=(Vec<N,T>& left, U right);
 
 // Vector op Vector
 Vec<N,T> operator +(Vec<N,T> left, const Vec<N,T>& right);
 
 // Vector op Scalar
-Vec<N,T> operator +(Vec<N,T> left, T right);
+Vec<N,T> operator +(Vec<N,T> left, U right);
 
 // Scalar op Vector
-Vec<N,T> operator +(T left, Vec<N,T> right);
+Vec<N,T> operator +(U left, Vec<N,T> right);
 
 **/
 

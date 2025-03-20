@@ -142,16 +142,18 @@ void printEnergy(const fidi::FDTD<D>& sim, int diodeHeight, Scalar dx, Scalar ce
 }
 
 template <class Scalar, int D>
-Scalar getEnergyFlow(const fidi::FDTD<D>& sim, int diodeHeight, Scalar dx, Scalar cellDepth)
+Scalar getEnergyFlow(const fidi::FDTD<D>& sim, fidi::RectNi<D> innerBounds, int diodeHeight, Scalar dx, Scalar cellDepth)
 {
     int gap = 5;
+    double scale = 0.64;
 
     Scalar cellFaceArea = 1;
     for (int i = 0; i < 2; i++)
         cellFaceArea *= (i < D-1) ? dx : cellDepth;
 
     // Plane surface below reflective layers
-    fidi::Rect plane(sim.gridSize());
+    fidi::Rect plane(innerBounds.min + innerBounds.size() * ((1 - scale) / 2),
+                     innerBounds.max - innerBounds.size() * ((1 - scale) / 2));
     plane.max[D-1] = diodeHeight - gap;
     plane.min[D-1] = diodeHeight - gap - 1;
 
@@ -197,7 +199,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
         sim.step();
 
         // 2D: Cell depth = diode width (square shape in 3D)
-        energy += getEnergyFlow(sim, diodeHeight / dx, dx, csGridSize[0] * dx); // * dt;
+        energy += getEnergyFlow(sim, innerBounds, diodeHeight / dx, dx, csGridSize[0] * dx); // * dt;
 
         if (!(q % frameInterval))
         {
@@ -205,6 +207,6 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
             //printEnergy(sim, diodeHeight / dx, dx, csGridSize[0] * dx, q+1);
         }
     }
-    std::cout << "FDTD output interval: " << frameInterval * dt * 1e9 << " fs\n";
+    std::cout << "FDTD output interval: " << frameInterval * dt * 1e9 << " fs (" << numSteps << " steps)\n";
     std::cout << "Energy flow: " << energy << '\n';
 }

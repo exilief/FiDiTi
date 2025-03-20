@@ -49,4 +49,4 @@ fdtdWithMaterial = 1         # Enable/Disable material parameters for transmissi
 fdtdWavelength = 0.45        # um
 fdtdCellsPerWavelength = 40  # lambda / dx
 fdtdTime = 5.75              # Simulation time in fs
-fdtdOutputInterval = 0.07    # fs
+fdtdOutputInterval = 0.08    # fs
