@@ -47,6 +47,6 @@ siliconPermittivity = 15.813
 # FDTD simulation
 fdtdWithMaterial = 1         # Enable/Disable material parameters for transmission calculation (0 or 1)
 fdtdWavelength = 0.45        # um
-fdtdCellsPerWavelength = 40  # lambda / dx
-fdtdTime = 5.75              # Simulation time in fs
-fdtdOutputInterval = 0.08    # fs
+fdtdCellsPerWavelength = 80  # lambda / dx
+fdtdTime = 6.35              # Simulation time in fs
+fdtdOutputInterval = 0.09    # fs

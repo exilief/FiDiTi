@@ -428,6 +428,14 @@ class FDTD
         hardSrcsA.push_back(std::move(src));
     }
 
+    void addHardSource(RectNi<D> region, const Source& src = {})
+    {
+        forEachCell(region, [&](VecNi<D> pos)
+        {
+            addHardSource(pos, src);
+        });
+    }
+
     void addPlaneSource(Boundary b, const Source& src = {})  // TODO: LineSource
     {
         forEachIndex(boundaryRect(b), N, [&](int index)

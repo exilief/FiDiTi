@@ -145,7 +145,7 @@ template <class Scalar, int D>
 Scalar getEnergyFlow(const fidi::FDTD<D>& sim, fidi::RectNi<D> innerBounds, int diodeHeight, Scalar dx, Scalar cellDepth)
 {
     int gap = 5;
-    double scale = 0.64;
+    double scale = 0.5;
 
     Scalar cellFaceArea = 1;
     for (int i = 0; i < 2; i++)
@@ -184,8 +184,11 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
 
     fdtd::Source src;
     src.f = fn::makePulse(pulseWidth, delay);
+    //src.duration = 2 * delay;
 
     sim.addTfsfSource(1, -1, src);
+    //sim.addHardSource(innerBounds.max - project(innerBounds.size(), D-1) / 2.0, src);
+    //sim.addPlaneSource(fdtd::Boundary::YMax, src);
     sim.addAbsorbingBoundary(2);
 
     sim.setMaterials(std::move(matMap));
@@ -199,7 +202,7 @@ void runFDTD(viennacs::DenseCellSet<Scalar, D>& cellSet, fidi::fdtd::MaterialMap
         sim.step();
 
         // 2D: Cell depth = diode width (square shape in 3D)
-        energy += getEnergyFlow(sim, innerBounds, diodeHeight / dx, dx, csGridSize[0] * dx); // * dt;
+        energy += getEnergyFlow(sim, innerBounds, diodeHeight / dx, dx, csGridSize[0] * dx) * dt;
 
         if (!(q % frameInterval))
         {
