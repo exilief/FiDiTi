@@ -256,7 +256,7 @@ Scalar calculateLossFactor(Scalar N_L, Scalar N_lambda, Material m)
 {
     using constants::pi;
     auto sq = [] (auto x) { return x*x; };
-    return pi * N_lambda * std::sqrt(sq(1 + sq(N_lambda)/(2*sq(pi) * N_L * m.rA * m.rB)) - 1);
+    return pi / N_lambda * std::sqrt(sq(1 + sq(N_lambda)/(2*sq(pi * N_L) * m.rA * m.rB)) - 1);
 }
 
 // Alternative formula, using electric conductivity (sigma) and the time & space steps dt and dx
