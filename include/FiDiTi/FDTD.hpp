@@ -382,7 +382,8 @@ class FDTD
         return B[i];
     }
 
-    void setMaterials(MaterialMap materials)  // defineMaterials(), setMaterialParams()
+    // Define materials with IDs (set material parameters)
+    void setMaterials(MaterialMap materials)
     {
         mats = std::move(materials);
         applyMaterials();

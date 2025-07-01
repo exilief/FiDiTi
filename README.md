@@ -18,10 +18,3 @@ make TARGET=Release   # Or set TARGET in Makefile
 bin/FiDiTi
 python plot.py
 ```
-
-
-
-To Do:
-* Finite-difference diffusion solver?
-* Add license
-* Build-system ...

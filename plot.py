@@ -50,3 +50,4 @@ for i in range(57):
 
 # Using np.abs(data) makes the TF/SF wave look much cleaner (no low-amplitude noise)
 # (There are small oscillations around zero behind the wave -> Jumps between 2 colors)
+# Alternative: np.round(data, 8)
