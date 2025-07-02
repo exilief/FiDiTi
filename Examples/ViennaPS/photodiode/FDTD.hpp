@@ -20,13 +20,13 @@ auto changeGridSpacing(viennals::SmartPointer<viennals::Domain<Scalar, D>> level
     for (int i = 0; i < D; i++)
     {
         // Undo -1 change done in Grid constructor...
-        if (bcs[i] == hrleGrid<D>::PERIODIC_BOUNDARY)
+        if (bcs[i] == viennahrle::BoundaryType::PERIODIC_BOUNDARY)
             min[i]++;
 
         min[i] = std::floor(min[i] * grid.getGridDelta() / newGridDelta);
         max[i] = std::ceil(max[i] * grid.getGridDelta() / newGridDelta);
     }
-    hrleGrid<D> newGrid(&min[0], &max[0], newGridDelta, &bcs[0]);
+    viennahrle::Grid<D> newGrid(&min[0], &max[0], newGridDelta, &bcs[0]);
 
     auto newLevelSet = decltype(levelSet)::New(newGrid);
     viennals::FromSurfaceMesh<Scalar, D>(newLevelSet, mesh).apply();

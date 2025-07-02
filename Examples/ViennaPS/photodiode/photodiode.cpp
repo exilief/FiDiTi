@@ -4,7 +4,7 @@
 #include <models/psSF6O2Etching.hpp>
 
 #include <psProcess.hpp>
-#include <psUtils.hpp>
+#include <vcUtil.hpp>
 
 namespace ps = viennaps;
 namespace cs = viennacs;
@@ -14,18 +14,22 @@ int main(int argc, char *argv[]) {
   constexpr int D = 2;
 
   ps::Logger::setLogLevel(ps::LogLevel::INTERMEDIATE);
-  omp_set_num_threads(4);
 
   // Parse the parameters
-  ps::utils::Parameters params;
+  ps::util::Parameters params;
   if (argc > 1) {
     params.readConfigFile(argv[1]);
   } else {
     std::cout << "Usage: " << argv[0] << " <config file>" << std::endl;
     return 1;
   }
+  omp_set_num_threads(params.get<int>("numThreads"));
 
   bool withEtching = params.get("withEtching");
+
+  // Set parameter units
+  ps::units::Length::setUnit("um");
+  ps::units::Time::setUnit("s");
 
   // Geometry setup
   auto domain = makeGeometry<Scalar, D>(
@@ -98,6 +102,7 @@ int main(int argc, char *argv[]) {
   cellSet->setCellSetPosition(/*isAboveSurface*/ true);
   cellSet->setCoverMaterial(int(ps::Material::Air));
   cellSet->fromLevelSets(levelSets, materialMap ? materialMap->getMaterialMap() : nullptr, height);
+  cellSet->updateMaterials();
   cellSet->writeVTU("initial.vtu");
 
   //domain->generateCellSet(-5.0, ps::Material::Air, /*isAboveSurface*/ true)
@@ -117,8 +122,8 @@ int main(int argc, char *argv[]) {
   fdtd::MaterialMap matMap;
   matMap.emplace(int(ps::Material::Air),    fdtd::Material{1, 1});
   matMap.emplace(int(ps::Material::Si),     fdtd::Material{params.get("siliconPermittivity"), 1});
-  matMap.emplace(int(ps::Material::SiN),    fdtd::Material{params.get("passivationPermittivity"), 1});
   matMap.emplace(int(lensMaterial),         fdtd::Material{params.get("lensPermittivity"), 1});
+  matMap.emplace(int(passivationMaterial),  fdtd::Material{params.get("passivationPermittivity"), 1});
   matMap.emplace(int(antiReflectMaterial1), fdtd::Material{params.get("antiReflectPermittivity1"), 1});
   matMap.emplace(int(antiReflectMaterial2), fdtd::Material{params.get("antiReflectPermittivity2"), 1});
 

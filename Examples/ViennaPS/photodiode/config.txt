@@ -19,12 +19,12 @@ airHeight = 0.06  # Extra space for adding a lens on top in postprocessing
 
 # Process parameters
 withEtching = 0     # Enable/Disable etching process (create holes manually instead) (0 or 1)
-processTime = 0.07  # seconds
+processTime = 6.4   # seconds
 
 # Flux values in 1e16 / cm²
-ionFlux = 1.
-etchantFlux = 140.
-oxygenFlux = 140.
+ionFlux = 6.
+etchantFlux = 840.
+oxygenFlux = 840.
 
 ionExponent = 200
 meanEnergy = 100 # eV
@@ -50,3 +50,8 @@ fdtdWavelength = 0.45        # um
 fdtdCellsPerWavelength = 80  # lambda / dx
 fdtdTime = 6.35              # Simulation time in fs
 fdtdOutputInterval = 0.09    # fs
+
+
+
+
+numThreads = 4

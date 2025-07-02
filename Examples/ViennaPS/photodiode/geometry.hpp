@@ -7,9 +7,11 @@
 
 namespace ps = viennaps;
 
-inline const ps::Material lensMaterial {21};  // PDMS
-inline const ps::Material antiReflectMaterial1 {22};
-inline const ps::Material antiReflectMaterial2 {23};
+// Arbitrary materials, different from silicon and air
+inline const ps::Material lensMaterial = ps::Material::Polymer;
+inline const ps::Material passivationMaterial = ps::Material::SiN;
+inline const ps::Material antiReflectMaterial1 = ps::Material::SiO2;
+inline const ps::Material antiReflectMaterial2 = ps::Material::Si3N4;
 
 template <class T, int D>
 class Builder
@@ -157,8 +159,8 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
     builder.cutHoles(roof, numHoles, holeWidth, bounds[0], bounds[1], roofBottom, roofHeight);
 
     auto passivation = builder.createPlane(bulkTop + passivationHeight);
-    auto antiReflect1 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight1);
-    auto antiReflect2 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight1 + antiReflectHeight2);
+    auto antiReflect2 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight2);
+    auto antiReflect1 = builder.createPlane(bulkTop + passivationHeight + antiReflectHeight2 + antiReflectHeight1);
 
     domain->insertNextLevelSetAsMaterial(base, ps::Material::Si);
     if (!withMask)
@@ -167,9 +169,9 @@ auto makeGeometry(T xExtent, T yExtent, T gridDelta, T bulkHeight,
     if (withMask)
         domain->insertNextLevelSetAsMaterial(roof, ps::Material::Mask);
 
-    domain->insertNextLevelSetAsMaterial(passivation, ps::Material::SiN, false);
-    domain->insertNextLevelSetAsMaterial(antiReflect1, antiReflectMaterial1, false);
-    domain->insertNextLevelSetAsMaterial(antiReflect2, antiReflectMaterial2, false);
+    domain->insertNextLevelSetAsMaterial(passivation, passivationMaterial, false);
+    domain->insertNextLevelSetAsMaterial(antiReflect2, antiReflectMaterial2, true);
+    domain->insertNextLevelSetAsMaterial(antiReflect1, antiReflectMaterial1, true);
 
     return domain;
 }
