@@ -64,6 +64,13 @@ namespace fn
         return (1 - 2*a*a) * std::exp(-a*a);
     }
 
+    // Heaviside step function
+    template <class Scalar>
+    Scalar theta(Scalar t, Scalar d = 0)
+    {
+        return t >= d ? 1. : 0.;
+    }
+
     // Pulse signal: Use the number of time steps as parameters, delay = t_delay / dt, ...
     template <class Scalar>
     auto makePulse(Scalar width = 20, Scalar delay = 30)
