@@ -27,7 +27,7 @@ python plot.py
 
 To use the library in another project with CMake, install it to a local directory:
 ```bash
-cmake -B build -DCMAKE_INSTALL_PREFIX=<Install-dir>
+cmake -B build -DCMAKE_INSTALL_PREFIX=<FiDiTi-install-dir>
 cmake --install build
 ```
 
@@ -41,7 +41,20 @@ See the `photodiode` example in [ViennaPS](https://github.com/ViennaTools/Vienna
 
 To enable it, pass the install location of the FDTD library to CMake (variable `VIENNAPS_LOOKUP_DIRS`). It should then find it when configuring the build in ViennaPS and activate the example.
 ```bash
-cmake -B build -DVIENNAPS_BUILD_EXAMPLES=ON -DVIENNAPS_LOOKUP_DIRS=<Install-dir>
+cmake -B build -DVIENNAPS_BUILD_EXAMPLES=ON -DVIENNAPS_LOOKUP_DIRS=<FiDiTi-install-dir>
 cd build/examples/photodiode
 make
+./photodiode config.txt
+```
+
+
+
+## Build the example
+
+The `photodiode` example can also be built within this repository, using a separate local installation of ViennaPS:
+```bash
+cmake -B build -DFIDITI_BUILD_EXAMPLES=ON -DCMAKE_PREFIX_PATH=<ViennaPS-install-dir>
+cd build/Examples/ViennaPS/photodiode
+make
+./photodiode config.txt
 ```

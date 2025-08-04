@@ -4,6 +4,8 @@ project(FiDiTi
   LANGUAGES CXX C
   VERSION 0.0.0)
 
+option(FIDITI_BUILD_EXAMPLES "Build examples" OFF)
+
 
 include(GNUInstallDirs)
 
@@ -22,6 +24,12 @@ set_target_properties(
 target_include_directories(
   ${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/FiDiTi-${PROJECT_VERSION}>)
+
+
+if(FIDITI_BUILD_EXAMPLES)
+  message(STATUS "Building Examples")
+  add_subdirectory(Examples)
+endif()
 
 
 
